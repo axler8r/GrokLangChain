@@ -33,6 +33,18 @@ services:
     command: python main.py
 
   historian:
+    build:
+      context: ./application/historian
+    volumes:
+      - ./application/historian:/app
+      - ./share:/share
+    environment:
+      - PYTHONPATH=/app:/share
+    command: python main.py
+    depends_on:
+      - mongo
+
+  mongo:
     image: mongo
     ports:
       - "27017:27017"
