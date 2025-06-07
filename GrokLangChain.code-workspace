@@ -1,0 +1,22 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "files.exclude": {
+            "**/.git": true,
+            "**/tags": true,
+        },
+        "material-icon-theme.folders.associations": {
+            "agent": "android",
+            "archivist": "database",
+            "ficher": "batch",
+            "historian": "log",
+            "infrastructure": "bicep",
+            "librarian": "client",
+            "share": "shared",
+        }
+    }
+}

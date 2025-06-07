@@ -1,0 +1,42 @@
+{
+    "name": "AxLLMFiche",
+    "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bullseye",
+    "runArgs": [
+        "--name", "fiche",
+        "--hostname", "fiche",
+        "--cpus", "2",
+        "--memory", "8g"
+    ],
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "moby": true,
+            "installDockerBuildx": true,
+            "installDockerComposeSwitch": true,
+            "version": "latest",
+            "dockerDashComposeVersion": "v2"
+        },
+        "ghcr.io/devcontainers-extra/features/apt-get-packages": {
+            "packages": [
+                "aspell",
+                "git-flow",
+                "tig"
+            ]
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "github.copilot",
+                "ms-azuretools.vscode-docker",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "redhat.vscode-yaml",
+                "tamasfe.even-better-toml"
+            ]
+        }
+    },
+    "postCreateCommand": {
+        "installUv": "pipx install uv",
+        "installRuff": "pipx install ruff"
+    }
+}
