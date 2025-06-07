@@ -34,3 +34,7 @@ dmypy.json
 
 # Ruff
 .ruff_cache/
+
+# user
+/data
+
