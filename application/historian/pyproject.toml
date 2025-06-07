@@ -1,0 +1,7 @@
+[project]
+name = "historian"
+version = "0.1.0"
+description = "Keep track of converstions."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []

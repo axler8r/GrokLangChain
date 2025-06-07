@@ -1,0 +1,7 @@
+[project]
+name = "agent"
+version = "0.1.0"
+description = "Retrieve information from my library (PDF books)."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
