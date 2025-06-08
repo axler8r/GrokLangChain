@@ -1,7 +1,7 @@
 [project]
-name = "LLMFicher"
+name = "Biblioteq"
 version = "0.1.0"
-description = "Micro Fiche your Books"
+description = "Search your eBooks"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []

@@ -1,5 +1,5 @@
 def main():
-  print("Hello from ficher!")
+  print("Hello from loader!")
 
 
 if __name__ == "__main__":

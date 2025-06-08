@@ -1,5 +1,5 @@
 # Project Overview
-The project is called **LLMFiche**, a play on _Micro Fiche_.
+The project is called **Biblioteq**.
 
 This is a monorepo containing multiple Python components.
 
