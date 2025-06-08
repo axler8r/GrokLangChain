@@ -1,8 +1,3 @@
-Hello Copilot!
-
-Let me tell you about the project we will be working on.
-
-
 # Project Overview
 The project is called **LLMFiche**, a play on _Micro Fiche_.
 
@@ -14,9 +9,9 @@ The application will be deployed as a **Docker Compose** application.
 ## Components
 - `share`: Contains shared code and utilities used by other components.
 - `librarian`: The frontent.
-- `agent`: An agentic component that pulls data from a vector database
-    and generates responses based on user queries.
-- `ficher`: Chunks and encodes data from pdf (my books) files and stores
+- `agent`: An agentic component that interprets user requests, pulls data
+    from a vector database and generates responses based on user queries.
+- `loader`: Chunks and encodes data from pdf files (my books) and stores
     it in a vector database for retrieval by the agent.
 - `archivist`: Manages the vector database used by the agent.
 - `historian`: Stores and retrieves user query history.
@@ -30,7 +25,7 @@ The application will be deployed as a **Docker Compose** application.
 - **AutoGen**: Used for building the `agent` that interacts with the vector database.
 - **qdrant**: The vector database for storing and retrieving data by the `archivist`.
 - **MongoDB**: Used for storing user query history in the `historian` component.
-- **LangChain**: For embedding and chunking data from pdf files in the `ficher`.
+- **LangChain**: For embedding and chunking data from pdf files in the `loader`.
 - **FastAPI**: Used for building APIs in the `agent` component.
 - **Graphana**: Used for monitoring the health and performance of the application.
 - **Prometheus**: Used for monitoring and alerting in the `monitor` component.
@@ -44,13 +39,13 @@ The application will be deployed as a **Docker Compose** application.
 - `fastapi`: Used for building APIs in the `agent` component.
 - `pydantic`: Used for data validation and serialization in the `agent` component.
 - `python-dotenv`: Used for managing environment variables in all components.
-- `tqdm`: Used for progress bars in the `ficher` component.
+- `tqdm`: Used for progress bars in the `loader` component.
 - `qdrant-client`: Used for interacting with the vector database in the `archivist`
   component.
 - `pymongo`: Used for interacting with MongoDB in the `historian` component.
-- `LangChain`: Used for embedding and chunking data from pdf files in the `ficher`
+- `LangChain`: Used for embedding and chunking data from pdf files in the `loader`
   component.
-- `PyPDF2`: Used for reading pdf files in the `ficher` component.
+- `PyPDF2`: Used for reading pdf files in the `loader` component.
 - `pytest`: Used for testing all components.
 
 
@@ -78,7 +73,7 @@ project-root/
   |    |- archivist
   |    |    |- .env
   |    |    └- Dockerfile
-  |    └- ficher/
+  |    └- loader/
   |         |- .env
   |         └- Dockerfile
   ├─ share/
@@ -87,7 +82,6 @@ project-root/
   |- docker-compose.yml
   └- Makefile
 ```
-
 
 # Copilot Instructions
 

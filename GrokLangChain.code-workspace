@@ -12,7 +12,7 @@
         "material-icon-theme.folders.associations": {
             "agent": "android",
             "archivist": "database",
-            "ficher": "batch",
+            "loader": "batch",
             "historian": "log",
             "infrastructure": "bicep",
             "librarian": "client",

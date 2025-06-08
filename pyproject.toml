@@ -10,7 +10,7 @@ dependencies = []
 [tool.uv.workspace]
 members = [
     "application/agent",
-    "application/ficher",
+    "application/loader",
     "application/historian",
     "application/librarian",
     "share",

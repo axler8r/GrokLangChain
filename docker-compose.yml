@@ -21,11 +21,11 @@ services:
     volumes:
       - ./data/qdrant:/qdrant/storage
 
-  ficher:
+  loader:
     build:
-      context: ./application/ficher
+      context: ./application/loader
     volumes:
-      - ./application/ficher:/app
+      - ./application/loader:/app
       - ./share:/share
       - ./data:/data
     environment:
