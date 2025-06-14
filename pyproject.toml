@@ -1,5 +1,5 @@
 [project]
-name = "Biblioteq"
+name = "BiblioQuiz"
 version = "0.1.0"
 description = "Search your eBooks"
 readme = "README.md"

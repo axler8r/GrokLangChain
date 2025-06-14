@@ -2,12 +2,17 @@
     "folders": [
         {
             "path": "."
+        },
+        {
+            "path": "../BiblioQuest"
         }
     ],
     "settings": {
         "files.exclude": {
             "**/.git": true,
-            "**/tags": true,
+            "**/tags*": true,
+            "**/__pycache__": true,
+            ".venv/": true,
         },
         "material-icon-theme.folders.associations": {
             "agent": "android",
@@ -17,6 +22,7 @@
             "infrastructure": "bicep",
             "librarian": "client",
             "share": "shared",
+            "experiment": "middleware",
         }
     }
 }
