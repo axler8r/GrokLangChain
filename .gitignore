@@ -37,4 +37,5 @@ dmypy.json
 
 # user
 /data
+**/*.original
 
