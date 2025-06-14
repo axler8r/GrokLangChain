@@ -2,34 +2,46 @@
 PYTHON ?= python3
 PYTHON_VENV ?= .venv
 
+PHONY = help up down log ps build lint format test test-coverage
+
+# Default target
+help: ## Show this help message
+	@echo "Available targets:"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # docker compose
-up:
+up: ## Start docker compose services
+	@echo "Starting Docker Compose services..."
 	docker compose up --build --detach
 
-down:
+down: ## Stop docker compose services
+	@echo "Stopping Docker Compose services..."
 	docker compose down
 
-log:
+log: ## Show the logs of docker compose services
+	@echo "Showing logs of Docker Compose services..."
 	docker compose logs --follow --tail=100
 
-ps:
+ps: ## Show the status of the docker compose services
+	@echo "Showing status of Docker Compose services..."
 	docker compose ps
 
-build:
+build: ## Build docker compose services
+	@echo "Building Docker Compose services..."
 	docker compose build
 
 # code
-lint:
+lint: ## Lint code
 	ruff --fix --exit-zero --show-source --line-length 100 .
 
-format:
+format: ## Format code
 	ruff format --exit-zero --line-length 100 .
 
 # test
-test:
+test: ## Run tests
+	@echo "Running tests..."
 	pytest test
 
-test-coverage:
+test-coverage: ## Run tests with coverage
+	@echo "Running tests with coverage..."
 	pytest --cov=src --cov-report=html --cov-report=term-missing test
-
