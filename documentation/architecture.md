@@ -1,5 +1,5 @@
 # Project Overview
-The project is called **Biblioteq**.
+The project is called **BiblioQuiz**.
 
 This is a monorepo containing multiple Python components.
 
@@ -9,10 +9,10 @@ The application will be deployed as a **Docker Compose** application.
 ## Components
 - `share`: Contains shared code and utilities used by other components.
 - `librarian`: The frontent.
-- `agent`: An agentic component that interprets user requests, pulls data
-    from a vector database and generates responses based on user queries.
+- `orchestrator`: An agentic component that interprets user requests, pulls data
+  from a vector database and generates responses based on user queries.
 - `loader`: Chunks and encodes data from pdf files (my books) and stores
-    it in a vector database for retrieval by the agent.
+  it in a vector database for retrieval by the agent.
 - `archivist`: Manages the vector database used by the agent.
 - `historian`: Stores and retrieves user query history.
 - `monitor`: Monitors the health and performance of the application.
@@ -21,8 +21,9 @@ The application will be deployed as a **Docker Compose** application.
 ## Technologies
 - **Python**: The primary programming language used for all components.
 - **Docker**: For containerizing components.
+- **Docker Compose**: For orchestrating the multi-container application.
 - **Streamlit**: Used for building the `librarian` user interface.
-- **AutoGen**: Used for building the `agent` that interacts with the vector database.
+- **AutoGen**: Used for building the `orchestrator` agentic framework.
 - **qdrant**: The vector database for storing and retrieving data by the `archivist`.
 - **MongoDB**: Used for storing user query history in the `historian` component.
 - **LangChain**: For embedding and chunking data from pdf files in the `loader`.
@@ -63,15 +64,23 @@ project-root/
   ├─ application/
   |    |- librarian/
   |    |    |- .env
+  |    |    |- librarian.py
+  |    |    |- main.py
   |    |    └- Dockerfile
-  |    |- agent/
+  |    |- orchestrator/
   |    |    |- .env
+  |    |    |- orchestrator.py
+  |    |    |- main.py
   |    |    └- Dockerfile
   |    |- historian
   |    |    |- .env
+  |    |    |- historian.py
+  |    |    |- main.py
   |    |    └- Dockerfile
   |    |- archivist
   |    |    |- .env
+  |    |    |- archivist.py
+  |    |    |- main.py
   |    |    └- Dockerfile
   |    └- loader/
   |         |- .env

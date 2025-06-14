@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -17,4 +17,4 @@ RUN uv sync
 
 ENV PYTHONPATH=/app:/share
 
-CMD ["/app/.venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+CMD ["python", "main.py"]
