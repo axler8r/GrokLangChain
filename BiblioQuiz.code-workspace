@@ -20,6 +20,10 @@
             "librarian": "client",
             "share": "shared",
             "experiment": "middleware",
-        }
+        },
+        "github.copilot.chat.codeGeneration.instructions": [
+            {"file": ".github/copilot-chat-instructions.md", "language": "markdown"},
+            {"file": "documentation/architecture.md", "language": "markdown"}
+        ]
     }
 }
