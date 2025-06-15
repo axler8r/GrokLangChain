@@ -4,7 +4,21 @@ version = "0.1.0"
 description = "Search your eBooks"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "openai>=1.86.0",
+    "pymongo>=4.13.1",
+    "qdrant-client>=1.14.2",
+    "PyPDF2>=3.0.1",
+    "tiktoken>=0.9.0",
+    "python-dotenv>=1.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+]
 
 
 [tool.uv.workspace]
