@@ -11,8 +11,8 @@ from unittest.mock import Mock, patch
 import os
 import sys
 
-# Add the application/loader directory to the path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "application" / "loader"))
+# Add the application/loader/source directory to the path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "source"))
 
 from pdf_processor import PDFProcessor
 
@@ -20,7 +20,7 @@ from pdf_processor import PDFProcessor
 @pytest.fixture
 def test_pdf_path():
     """Fixture providing the path to the test PDF file."""
-    return Path(__file__).parent.parent.parent / "data" / "book" / "Deep Learning with Python, 2nd Edittion (Deep_Learning_with_Python_Second_Editio).pdf"
+    return Path(__file__).parent.parent.parent.parent / "data" / "book" / "Deep Learning with Python, 2nd Edittion (Deep_Learning_with_Python_Second_Editio).pdf"
 
 
 @pytest.fixture
