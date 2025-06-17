@@ -26,18 +26,27 @@
     "customizations": {
         "vscode": {
             "extensions": [
+                "charliermarsh.ruff",
                 "github.copilot",
                 "ms-azuretools.vscode-docker",
                 "ms-python.python",
-                "ms-python.vscode-pylance",
+                "ms-python.vscode-python-envs",
                 "ms-vscode.makefile-tools",
                 "redhat.vscode-yaml",
                 "tamasfe.even-better-toml"
             ]
+        },
+        "settings": {
+            "python.defaultInterpreterPath": ".venv/bin/python",
+            "python.venvPath": "${workspaceFolder}"
         }
     },
     "postCreateCommand": {
         "installUv": "pipx install uv",
         "installRuff": "pipx install ruff"
+    },
+    "postStartCommand": {
+        "removeExisitngVenv": "rm -rf .venv",
+        "setupVenv": "uv venv && uv sync --dev"
     }
 }

@@ -4,6 +4,8 @@ PYTHON_VENV ?= .venv
 
 PHONY = help up down log ps build lint format test test-coverage
 
+.PHONY: $(PHONY)
+
 # Default target
 help: ## Show this help message
 	@echo "Available targets:"
@@ -40,8 +42,8 @@ format: ## Format code
 # test
 test: ## Run tests
 	@echo "Running tests..."
-	pytest test
+	OPENAI_API_KEY=test-key pytest application
 
 test-coverage: ## Run tests with coverage
 	@echo "Running tests with coverage..."
-	pytest --cov=src --cov-report=html --cov-report=term-missing test
+	OPENAI_API_KEY=test-key pytest --cov=application --cov-report=html --cov-report=term-missing application

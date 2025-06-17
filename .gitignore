@@ -6,6 +6,13 @@ __pycache__/
 # Logs
 *.log
 
+# Distribution
+*.egg-info/
+
+# Test and coverage
+.coverage
+.coverage.*
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
@@ -38,4 +45,5 @@ dmypy.json
 # user
 /data
 **/*.original
+tags*
 

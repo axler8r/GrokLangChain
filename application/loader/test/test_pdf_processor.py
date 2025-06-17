@@ -5,11 +5,12 @@ specifically testing chunking and encoding capabilities without
 database storage.
 """
 
-import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch
 import os
 import sys
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
 
 # Add the application/loader/source directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "source"))
@@ -20,7 +21,12 @@ from pdf_processor import PDFProcessor
 @pytest.fixture
 def test_pdf_path():
     """Fixture providing the path to the test PDF file."""
-    return Path(__file__).parent.parent.parent.parent / "data" / "book" / "Deep Learning with Python, 2nd Edittion (Deep_Learning_with_Python_Second_Editio).pdf"
+    return (
+        Path(__file__).parent.parent.parent.parent
+        / "data"
+        / "book"
+        / "Deep Learning with Python, 2nd Edittion (Deep_Learning_with_Python_Second_Editio).pdf"
+    )
 
 
 @pytest.fixture
@@ -93,8 +99,10 @@ class TestPDFProcessor:
             
             # Check token count is within expected range
             token_count = len(mock_pdf_processor.tokenizer.encode(chunk))
-            assert token_count <= mock_pdf_processor.chunk_size, \
-                f"Chunk {i} token count ({token_count}) should not exceed chunk_size ({mock_pdf_processor.chunk_size})"
+            assert token_count <= mock_pdf_processor.chunk_size, (
+                f"Chunk {i} token count ({token_count}) should not exceed "
+                f"chunk_size ({mock_pdf_processor.chunk_size})"
+            )
 
     def test_chunk_overlap(self, mock_pdf_processor):
         """Test that chunking produces overlapping content when expected."""
@@ -122,7 +130,9 @@ class TestPDFProcessor:
         
         assert isinstance(embedding, list), "Embedding should be a list"
         assert len(embedding) == 1536, "Ada-002 embeddings should be 1536 dimensions"
-        assert all(isinstance(x, (int, float)) for x in embedding), "All embedding values should be numeric"
+        assert all(isinstance(x, (int, float)) for x in embedding), (
+            "All embedding values should be numeric"
+        )
         
         # Verify OpenAI was called correctly
         mock_openai_create.assert_called_once_with(
@@ -149,7 +159,12 @@ class TestPDFProcessor:
         assert chunk_id != chunk_id3, "Different inputs should produce different chunk IDs"
 
     @patch('pdf_processor.openai.embeddings.create')
-    def test_end_to_end_chunking_and_encoding(self, mock_openai_create, mock_pdf_processor, test_pdf_path):
+    def test_end_to_end_chunking_and_encoding(
+        self,
+        mock_openai_create,
+        mock_pdf_processor,
+        test_pdf_path
+    ) -> None:
         """Test end-to-end chunking and encoding without database storage."""
         # Mock OpenAI response
         mock_response = Mock()
@@ -185,7 +200,9 @@ class TestPDFProcessor:
             }
             
             assert chunk_data["_id"] == chunk_id, "Chunk data should have correct ID"
-            assert chunk_data["source_file"] == str(test_pdf_path), "Chunk data should have correct source file"
+            assert chunk_data["source_file"] == str(test_pdf_path), (
+                "Chunk data should have correct source file"
+            )
             assert chunk_data["chunk_index"] == i, "Chunk data should have correct index"
             assert chunk_data["text"] == chunk, "Chunk data should have correct text"
             assert chunk_data["token_count"] > 0, "Chunk data should have positive token count"
