@@ -15,11 +15,13 @@ The `PDFProcessor` class is the core component that orchestrates the entire PDF 
 - **PDF Text Extraction**: Extracts text content from PDF files using PyPDF2
 - **Intelligent Chunking**: Splits text into overlapping segments optimized for vector search
 - **Embedding Generation**: Creates vector embeddings using OpenAI's Ada-002 model
-- **Dual Storage**: Stores text chunks in MongoDB and vectors in Qdrant
+- **Dual Storage**: Stores text chunks in MongoDB and vectors in Qdrant directly
 
 ## Configuration
 
-The loader reads configuration from environment variables defined in `.env`:
+The loader connects directly to the Qdrant vector database service and reads configuration from environment variables. For Docker deployment, use the service names (e.g., `qdrant`, `mongo`). For local development, use `localhost`.
+
+Copy `.env.example` to `.env` and configure:
 
 ```bash
 # MongoDB Configuration
@@ -28,7 +30,7 @@ MONGO_DB=biblioquiz
 MONGO_COLLECTION=chunks
 
 # Qdrant Configuration
-QDRANT_HOST=localhost
+QDRANT_HOST=qdrant  # Use 'qdrant' when running in Docker, 'localhost' for local development
 QDRANT_PORT=6333
 QDRANT_COLLECTION=embeddings
 

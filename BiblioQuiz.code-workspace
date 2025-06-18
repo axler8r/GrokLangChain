@@ -13,7 +13,6 @@
         },
         "material-icon-theme.folders.associations": {
             "agent": "android",
-            "archivist": "database",
             "loader": "batch",
             "historian": "log",
             "infrastructure": "bicep",

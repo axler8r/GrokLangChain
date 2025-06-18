@@ -15,7 +15,7 @@
 * **Embedding**: `text-embedding-3-small` (OpenAI) or local fallback (`bge-small`, etc.)
 * **Chunk-level vectors** with metadata: doc ID, page, tags
 * **Storage**: Qdrant used for dense vector storage with filtering payloads
-* **Retrieval**: `agent` queries `archivist`, receives top-k chunks, and augments prompts with these
+* **Retrieval**: `agent` queries Qdrant directly, receives top-k chunks, and augments prompts with these
 
 ---
 
@@ -73,7 +73,7 @@ To move from architecture to execution meaningfully and prepare for Codex-assist
 ### Phase 2: Implement Core Data Flow
 
 * [ ] Build PDF ingestion + chunking pipeline in `ficher`
-* [ ] Connect to Qdrant via `archivist` with a basic upsert/query API
+* [ ] Connect to Qdrant directly with a basic upsert/query API
 * [ ] Add agent retrieval and response generation stub using OpenAI
 * [ ] Start logging queries and responses to MongoDB in `historian`
 

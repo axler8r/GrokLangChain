@@ -13,7 +13,6 @@ The application will be deployed as a **Docker Compose** application.
   from a vector database and generates responses based on user queries.
 - `loader`: Chunks and encodes data from pdf files (my books) and stores
   it in a vector database for retrieval by the agent.
-- `archivist`: Manages the vector database used by the agent.
 - `historian`: Stores and retrieves user query history.
 - `monitor`: Monitors the health and performance of the application.
 
@@ -24,7 +23,7 @@ The application will be deployed as a **Docker Compose** application.
 - **Docker Compose**: For orchestrating the multi-container application.
 - **Streamlit**: Used for building the `librarian` user interface.
 - **AutoGen**: Used for building the `orchestrator` agentic framework.
-- **qdrant**: The vector database for storing and retrieving data by the `archivist`.
+- **qdrant**: The vector database for storing and retrieving embeddings directly accessed by other services.
 - **MongoDB**: Used for storing user query history in the `historian` component.
 - **LangChain**: For embedding and chunking data from pdf files in the `loader`.
 - **FastAPI**: Used for building APIs in the `agent` component.
@@ -41,7 +40,7 @@ The application will be deployed as a **Docker Compose** application.
 - `pydantic`: Used for data validation and serialization in the `agent` component.
 - `python-dotenv`: Used for managing environment variables in all components.
 - `tqdm`: Used for progress bars in the `loader` component.
-- `qdrant-client`: Used for interacting with the vector database in the `archivist`
+- `qdrant-client`: Used for interacting with the Qdrant vector database directly
   component.
 - `pymongo`: Used for interacting with MongoDB in the `historian` component.
 - `LangChain`: Used for embedding and chunking data from pdf files in the `loader`
@@ -75,11 +74,6 @@ project-root/
   |    |- historian
   |    |    |- .env
   |    |    |- historian.py
-  |    |    |- main.py
-  |    |    └- Dockerfile
-  |    |- archivist
-  |    |    |- .env
-  |    |    |- archivist.py
   |    |    |- main.py
   |    |    └- Dockerfile
   |    └- loader/

@@ -3,6 +3,7 @@ from fastapi.responses import PlainTextResponse
 
 app = FastAPI()
 
+
 def main() -> str:
     """Returns a greeting from the agent.
 
@@ -10,6 +11,7 @@ def main() -> str:
         str: Greeting message.
     """
     return "Hello from agent!"
+
 
 @app.get("/", response_class=PlainTextResponse)
 def read_root() -> str:
@@ -19,6 +21,7 @@ def read_root() -> str:
         str: Greeting message.
     """
     return main()
+
 
 # if __name__ == "__main__":
 #     import uvicorn

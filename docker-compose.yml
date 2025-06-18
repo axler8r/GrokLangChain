@@ -1,5 +1,12 @@
 services:
-  archivist:
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/mongo:/data/db
+
+  qdrant:
     image: qdrant/qdrant
     ports:
       - "6333:6333"
@@ -16,38 +23,9 @@ services:
     environment:
       - PYTHONPATH=/app:/share
       - PDF_PATH=${PDF_PATH:-/data/book}
+      - QDRANT_HOST=qdrant
+      - MONGO_URI=mongodb://mongo:27017
     restart: unless-stopped
     depends_on:
-      - archivist
+      - qdrant
       - mongo
-
-  historian:
-    build:
-      context: ./application/historian
-    volumes:
-      - ./application/historian:/app
-      - ./share:/share
-    environment:
-      - PYTHONPATH=/app:/share
-    command: python main.py
-    depends_on:
-      - mongo
-
-  mongo:
-    image: mongo
-    ports:
-      - "27017:27017"
-    volumes:
-      - ./data/mongo:/data/db
-
-  librarian:
-    build:
-      context: ./application/librarian
-    volumes:
-      - ./application/librarian:/app
-      - ./share:/share
-    environment:
-      - PYTHONPATH=/app:/share
-    command: streamlit run main.py --server.port=8501
-    ports:
-      - "8501:8501"
