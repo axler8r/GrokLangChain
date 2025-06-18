@@ -16,4 +16,4 @@ COPY . .
 
 ENV PYTHONPATH=/app:/share
 
-CMD ["python", "main.py"]
+CMD ["python", "source/main.py"]

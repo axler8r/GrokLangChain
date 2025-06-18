@@ -3,5 +3,19 @@
         "application"
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "python.analysis.extraPaths": [
+        "./application/loader",
+        "./application/orchestrator/source",
+        "./application/historian",
+        "./application/librarian", 
+        "./share/src"
+    ],
+    "python.analysis.autoSearchPaths": true,
+    "python.terminal.activateEnvironment": true,
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/poetry.lock": false
+    }
 }

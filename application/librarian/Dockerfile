@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -7,14 +7,13 @@ RUN apt update \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fLsS https://astral.sh/uv/install.sh | sh
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy application code
 COPY . .
-
-ENV PATH="/root/.local/bin:${PATH}"
-
-RUN uv sync
 
 ENV PYTHONPATH=/app:/share
 
-CMD ["streamlit", "run", "main.py", "--server.port=8501"]
+CMD ["python", "main.py"]

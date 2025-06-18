@@ -1,19 +1,15 @@
 [tool.poetry]
-name = "biblioquiz-loader"
+name = "biblioquiz-orchestrator"
 version = "0.1.0"
-description = "PDF processing and embedding service"
+description = "Retrieve information from library (PDF books)"
 readme = "README.md"
 authors = ["AxlER8R <axl@axler8r.io>"]
 package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
-openai = "^1.86.0"
-pymongo = "^4.13.1"
-pypdf = "^4.0.0"
-python-dotenv = "^1.1.0"
-qdrant-client = "^1.14.2"
-tiktoken = "^0.9.0"
+autogen-agentchat = "^0.6.1"
+autogen-ext = {extras = ["openai"], version = "^0.6.1"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.0"

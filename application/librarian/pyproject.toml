@@ -1,7 +1,17 @@
-[project]
-name = "librarian"
+[tool.poetry]
+name = "biblioquiz-librarian"
 version = "0.1.0"
-description = "Gives me informaiton about books."
+description = "Gives information about books"
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = []
+authors = ["AxlER8R <axl@axler8r.io>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
