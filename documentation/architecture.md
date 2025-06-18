@@ -83,8 +83,18 @@ project-root/
   |    |    |- main.py
   |    |    └- Dockerfile
   |    └- loader/
+  |         |- src/
+  |         |    |- __init__.py
+  |         |    |- main.py
+  |         |    └- pdf_processor.py
+  |         |- test/
+  |         |    |- __init__.py
+  |         |    └- test_pdf_processor.py
   |         |- .env
-  |         └- Dockerfile
+  |         |- Dockerfile
+  |         |- README.md
+  |         |- run_loader.sh
+  |         └- pyproject.toml
   ├─ share/
   |- data/
   ├─ test/

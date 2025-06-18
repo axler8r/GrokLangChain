@@ -5,25 +5,24 @@ manageable pieces, storing the chunks in MongoDB, encoding them with OpenAI
 embeddings, and storing the vector embeddings in Qdrant.
 """
 
+import hashlib
 import os
 from pathlib import Path
-from typing import List, Dict, Any, Optional
-import hashlib
+from typing import Any, Dict, List, Optional
 
-from openai.types.create_embedding_response import CreateEmbeddingResponse
-
-from dotenv import load_dotenv
-from pymongo import MongoClient
-from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct
 import openai
 import PyPDF2
 import tiktoken
+from dotenv import load_dotenv
+from openai.types.create_embedding_response import CreateEmbeddingResponse
+from pymongo import MongoClient
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, PointStruct, VectorParams
 
 
 class PDFProcessor:
     """Processes PDF files for the BiblioQuiz application.
-    
+
     This class handles the complete pipeline of PDF processing:
     1. Reading PDF files from a directory
     2. Extracting text and chunking into 512 tokens with 64 token overlap
@@ -33,13 +32,10 @@ class PDFProcessor:
     """
 
     def __init__(
-        self,
-        env_file: Optional[str] = None,
-        chunk_size: int = 512,
-        chunk_overlap: int = 64
+        self, env_file: Optional[str] = None, chunk_size: int = 512, chunk_overlap: int = 64
     ) -> None:
         """Initialize the PDFProcessor with database connections from .env file.
-        
+
         Args:
             env_file: Path to .env file (default: None, uses default .env)
             chunk_size: Size of text chunks in tokens (default: 512)
@@ -94,23 +90,23 @@ class PDFProcessor:
             self.qdrant_client.create_collection(
                 collection_name=self.qdrant_collection,
                 vectors_config=VectorParams(
-                    size=1536, distance=Distance.COSINE)
+                    size=1536, distance=Distance.COSINE),
             )
 
     def _extract_text_from_pdf(self, pdf_path: Path) -> str:
         """Extract text content from a PDF file.
-        
+
         Args:
             pdf_path: Path to the PDF file
-            
+
         Returns:
             Extracted text content as a string
-            
+
         Raises:
             Exception: If PDF reading fails
         """
         text: str = ""
-        with open(pdf_path, 'rb') as file:
+        with open(pdf_path, "rb") as file:
             pdf_reader = PyPDF2.PdfReader(file)
             for page in pdf_reader.pages:
                 text += page.extract_text() + "\n"
@@ -118,10 +114,10 @@ class PDFProcessor:
 
     def _chunk_text(self, text: str) -> List[str]:
         """Chunk text into overlapping segments based on token count.
-        
+
         Args:
             text: Input text to be chunked
-            
+
         Returns:
             List of text chunks with specified token size and overlap
         """
@@ -144,11 +140,11 @@ class PDFProcessor:
 
     def _generate_chunk_id(self, file_path: str, chunk_index: int) -> str:
         """Generate a unique ID for a chunk.
-        
+
         Args:
             file_path: Path of the source file
             chunk_index: Index of the chunk within the file
-            
+
         Returns:
             Unique chunk identifier
         """
@@ -157,7 +153,7 @@ class PDFProcessor:
 
     def _store_chunk_in_mongo(self, chunk_data: Dict[str, Any]) -> None:
         """Store a text chunk in MongoDB.
-        
+
         Args:
             chunk_data: Dictionary containing chunk information
         """
@@ -165,51 +161,41 @@ class PDFProcessor:
 
     def _get_embedding(self, text: str) -> List[float]:
         """Get OpenAI Ada 002 embedding for text.
-        
+
         Args:
             text: Text to encode
-            
+
         Returns:
             Embedding vector as list of floats
         """
         response: CreateEmbeddingResponse = openai.embeddings.create(
-            input=text,
-            model="text-embedding-ada-002"
+            input=text, model="text-embedding-ada-002"
         )
         return response.data[0].embedding
 
     def _store_vector_in_qdrant(
-        self,
-        chunk_id: str,
-        vector: List[float],
-        metadata: Dict[str, Any]
+        self, chunk_id: str, vector: List[float], metadata: Dict[str, Any]
     ) -> None:
         """Store vector embedding in Qdrant.
-        
+
         Args:
             chunk_id: Unique identifier for the chunk
             vector: Embedding vector
             metadata: Additional metadata for the vector
         """
-        point = PointStruct(
-            id=chunk_id,
-            vector=vector,
-            payload=metadata
-        )
+        point = PointStruct(id=chunk_id, vector=vector, payload=metadata)
         self.qdrant_client.upsert(
-            collection_name=self.qdrant_collection,
-            points=[point]
-        )
+            collection_name=self.qdrant_collection, points=[point])
 
     def process_pdf_file(self, pdf_path: Path) -> int:
         """Process a single PDF file through the complete pipeline.
-        
+
         Args:
             pdf_path: Path to the PDF file to process
-            
+
         Returns:
             Number of chunks processed
-            
+
         Raises:
             Exception: If processing fails at any stage
         """
@@ -230,7 +216,7 @@ class PDFProcessor:
                 "source_file": str(pdf_path),
                 "chunk_index": i,
                 "text": chunk,
-                "token_count": len(self.tokenizer.encode(chunk))
+                "token_count": len(self.tokenizer.encode(chunk)),
             }
 
             # Store chunk in MongoDB
@@ -243,7 +229,7 @@ class PDFProcessor:
             metadata = {
                 "source_file": str(pdf_path),
                 "chunk_index": i,
-                "token_count": chunk_data["token_count"]
+                "token_count": chunk_data["token_count"],
             }
 
             # Store vector in Qdrant
@@ -255,13 +241,13 @@ class PDFProcessor:
 
     def process_directory(self, directory_path: Path) -> Dict[str, int]:
         """Process all PDF files in a directory.
-        
+
         Args:
             directory_path: Path to directory containing PDF files
-            
+
         Returns:
             Dictionary mapping file paths to number of chunks processed
-            
+
         Raises:
             Exception: If directory access fails or processing errors occur
         """

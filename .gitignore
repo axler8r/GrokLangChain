@@ -12,6 +12,8 @@ __pycache__/
 # Test and coverage
 .coverage
 .coverage.*
+htmlcov/
+**/.pytest_cache/
 
 # Jupyter Notebook
 .ipynb_checkpoints

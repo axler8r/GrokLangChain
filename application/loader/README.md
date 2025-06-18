@@ -262,3 +262,28 @@ The loader provides detailed logging for operational visibility:
 - **Incremental Updates**: Delta processing for document changes
 - **Metadata Extraction**: Enhanced document metadata parsing
 - **Parallel Processing**: Multi-threaded chunk processing
+
+## Weekly Scheduling
+
+The loader service is configured to run automatically once a week (every Sunday at 2 AM) using a cron job inside the Docker container. This ensures that new PDFs added to the configured directory are processed regularly without manual intervention.
+
+### Configuration
+
+The loader service accepts the following environment variables:
+
+- `PDF_PATH`: The directory path where the service looks for PDF files to process (default: `/data/book`)
+- Standard database connection variables (MONGO_URL, QDRANT_URL, OPENAI_API_KEY, etc.)
+
+### Manual Execution
+
+For testing or one-off processing, you can run the loader manually:
+
+```bash
+# Using docker-compose
+docker-compose run loader python main.py
+
+# Or use the provided script
+docker-compose exec loader ./run_loader.sh
+```
+
+## Configuration
