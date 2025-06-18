@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import openai
-import PyPDF2
+import pypdf
 import tiktoken
 from dotenv import load_dotenv
 from openai.types.create_embedding_response import CreateEmbeddingResponse
@@ -107,7 +107,7 @@ class PDFProcessor:
         """
         text: str = ""
         with open(pdf_path, "rb") as file:
-            pdf_reader = PyPDF2.PdfReader(file)
+            pdf_reader = pypdf.PdfReader(file)
             for page in pdf_reader.pages:
                 text += page.extract_text() + "\n"
         return text

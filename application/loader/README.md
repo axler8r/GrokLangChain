@@ -12,7 +12,7 @@ The loader implements a complete PDF processing pipeline that transforms raw PDF
 
 The `PDFProcessor` class is the core component that orchestrates the entire PDF processing workflow:
 
-- **PDF Text Extraction**: Extracts text content from PDF files using PyPDF2
+- **PDF Text Extraction**: Extracts text content from PDF files using pypdf
 - **Intelligent Chunking**: Splits text into overlapping segments optimized for vector search
 - **Embedding Generation**: Creates vector embeddings using OpenAI's Ada-002 model
 - **Dual Storage**: Stores text chunks in MongoDB and vectors in Qdrant directly
@@ -78,7 +78,7 @@ graph LR
     I --> N[_get_embedding]
     I --> O[_store_vector_in_qdrant]
     
-    J --> P[PyPDF2.PdfReader]
+    J --> P[pypdf.PdfReader]
     J --> Q[page.extract_text]
     
     K --> R[tokenizer.encode]
@@ -180,7 +180,7 @@ processor = PDFProcessor(
 ## Data Flow
 
 1. **Input**: PDF files from specified directory
-2. **Extraction**: Text content extracted using PyPDF2
+2. **Extraction**: Text content extracted using pypdf
 3. **Tokenization**: Text converted to tokens using tiktoken
 4. **Chunking**: Text split into overlapping segments
 5. **ID Generation**: Unique hash-based IDs created for each chunk
@@ -220,7 +220,7 @@ The loader implements comprehensive error handling:
 - `openai>=1.86.0` - OpenAI API client for embeddings
 - `pymongo>=4.13.1` - MongoDB database driver
 - `qdrant-client>=1.14.2` - Qdrant vector database client
-- `PyPDF2>=3.0.1` - PDF text extraction
+- `pypdf>=4.0.0` - PDF text extraction
 - `tiktoken>=0.9.0` - OpenAI tokenization
 - `python-dotenv>=1.1.0` - Environment variable management
 

@@ -45,7 +45,7 @@ The application will be deployed as a **Docker Compose** application.
 - `pymongo`: Used for interacting with MongoDB in the `historian` component.
 - `LangChain`: Used for embedding and chunking data from pdf files in the `loader`
   component.
-- `PyPDF2`: Used for reading pdf files in the `loader` component.
+- `pypdf`: Used for reading pdf files in the `loader` component.
 - `pytest`: Used for testing all components.
 
 
