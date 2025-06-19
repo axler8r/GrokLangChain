@@ -1,39 +1,7 @@
-[tool.poetry]
-name = "biblioquiz"
+[project]
+name = "biblioteq"
 version = "0.1.0"
-description = "Search your eBooks"
+description = "Add your description here"
 readme = "README.md"
-authors = ["AxlER8R <axl@axler8r.io>"]
-
-[tool.poetry.dependencies]
-python = "^3.12"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.4.0"
-pytest-cov = "^6.2.1"
-pytest-mock = "^3.14.1"
-ruff = "^0.8.0"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.ruff]
-line-length = 100
-target-version = "py312"
-lint.select = ["E", "F", "I", "B"]
-exclude = [
-    "__pycache__",
-    ".venv",
-]
-
-[tool.ruff.lint.isort]
-known-first-party = ["biblioquiz"]
-
-[tool.pytest.ini_options]
-testpaths = ["application/*/test"]
-python_files = ["test_*.py"]
-python_functions = ["test_*"]
-addopts = "--strict-markers --strict-config"
-
-
+requires-python = ">=3.12"
+dependencies = []
