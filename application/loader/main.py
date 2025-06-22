@@ -8,7 +8,7 @@ import os
 import sys
 from pathlib import Path
 
-from pdf_processor import PDFProcessor
+from loader import Loader
 
 
 def get_pdf_path() -> str:
@@ -38,7 +38,7 @@ def main() -> None:
         print(f"Processing PDFs from: {pdf_path}")
 
         # Initialize the PDF processor
-        processor = PDFProcessor()
+        processor = Loader()
 
         # Process PDFs from the configured path
         pdf_directory = Path(pdf_path)

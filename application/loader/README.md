@@ -8,9 +8,9 @@ The loader implements a complete PDF processing pipeline that transforms raw PDF
 
 ## Key Components
 
-### PDFProcessor Class
+### Loader Class
 
-The `PDFProcessor` class is the core component that orchestrates the entire PDF processing workflow:
+The `Loader` class is the core component that orchestrates the entire PDF processing workflow:
 
 - **PDF Text Extraction**: Extracts text content from PDF files using pypdf
 - **Intelligent Chunking**: Splits text into overlapping segments optimized for vector search
@@ -42,7 +42,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 ```mermaid
 graph TD
-    A[PDF File] --> B[PDFProcessor.process_pdf_file]
+    A[PDF File] --> B[Loader.process_pdf_file]
     B --> C[_extract_text_from_pdf]
     C --> D[_chunk_text]
     D --> E[For each chunk]
@@ -62,7 +62,7 @@ graph TD
 
 ```mermaid
 graph LR
-    A[PDFProcessor.__init__] --> B[load_dotenv]
+    A[Loader.__init__] --> B[load_dotenv]
     A --> C[MongoClient]
     A --> D[QdrantClient]
     A --> E[tiktoken.encoding_for_model]
@@ -143,11 +143,11 @@ graph LR
 ### Basic Usage
 
 ```python
-from pdf_processor import PDFProcessor
+from loader import Loader
 from pathlib import Path
 
 # Initialize with .env configuration
-processor = PDFProcessor()
+processor = Loader()
 
 # Process a single PDF file
 pdf_path = Path("book.pdf")
@@ -168,10 +168,10 @@ processor.close_connections()
 
 ```python
 # Use custom .env file
-processor = PDFProcessor(env_file="custom.env")
+processor = Loader(env_file="custom.env")
 
 # Custom chunk settings
-processor = PDFProcessor(
+processor = Loader(
     chunk_size=256,    # Smaller chunks
     chunk_overlap=32   # Less overlap
 )

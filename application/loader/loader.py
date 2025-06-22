@@ -1,4 +1,4 @@
-"""PDF processing module for BiblioQuiz application.
+"""Loader module for BiblioQuiz application.
 
 This module provides functionality to process PDF files by chunking them into
 manageable pieces, storing the chunks in MongoDB, encoding them with OpenAI
@@ -20,7 +20,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
 
-class PDFProcessor:
+class Loader:
     """Processes PDF files for the BiblioQuiz application.
 
     This class handles the complete pipeline of PDF processing:
@@ -34,7 +34,7 @@ class PDFProcessor:
     def __init__(
         self, env_file: Optional[str] = None, chunk_size: int = 512, chunk_overlap: int = 64
     ) -> None:
-        """Initialize the PDFProcessor with database connections from .env file.
+        """Initialize the Loader with database connections from .env file.
 
         Args:
             env_file: Path to .env file (default: None, uses default .env)

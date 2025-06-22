@@ -1,5 +1,5 @@
 """Source code for the loader module."""
 
-from .pdf_processor import PDFProcessor
+from .loader import Loader
 
-__all__ = ["PDFProcessor"]
+__all__ = ["Loader"]
