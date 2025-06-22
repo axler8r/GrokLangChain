@@ -7,12 +7,13 @@
     "settings": {
         "files.exclude": {
             "**/.git": true,
-            "**/tags*": true,
+            "**/.pytest_cache": true,
             "**/__pycache__": true,
+            "**/tags*": true,
             ".venv/": true,
         },
         "material-icon-theme.folders.associations": {
-            "agent": "android",
+            "orchestrator": "android",
             "loader": "batch",
             "historian": "log",
             "infrastructure": "bicep",

@@ -1,97 +1,105 @@
 # Project Overview
-The project is called **BiblioQuiz**.
+The project is called **BiblioTeq**.
 
-This is a monorepo containing multiple Python components.
+This is a monorepo containing multiple Python services.
 
 The application will be deployed as a **Docker Compose** application.
 
 
-## Components
-- `share`: Contains shared code and utilities used by other components.
+## Services
 - `librarian`: The frontent.
-- `orchestrator`: An agentic component that interprets user requests, pulls data
-  from a vector database and generates responses based on user queries.
+- `orchestrator`: An agentic service that interprets user requests, pulls data
+    from a vector database and generates responses based on user queries.
 - `loader`: Chunks and encodes data from pdf files (my books) and stores
-  it in a vector database for retrieval by the agent.
+    it in a vector database and document database.
 - `historian`: Stores and retrieves user query history.
-- `monitor`: Monitors the health and performance of the application.
+- `inspector`: Monitors the health and performance of the application. Optional.
 
+## Shared Code
+- `share`: Contains shared code and utilities used by other services.
 
 ## Technologies
-- **Python**: The primary programming language used for all components.
-- **Docker**: For containerizing components.
+- **Python**: The programming language used for all services.
+- **Docker**: For containerizing services.
 - **Docker Compose**: For orchestrating the multi-container application.
-- **Streamlit**: Used for building the `librarian` user interface.
-- **AutoGen**: Used for building the `orchestrator` agentic framework.
-- **qdrant**: The vector database for storing and retrieving embeddings directly accessed by other services.
-- **MongoDB**: Used for storing user query history in the `historian` component.
-- **LangChain**: For embedding and chunking data from pdf files in the `loader`.
-- **FastAPI**: Used for building APIs in the `agent` component.
-- **Graphana**: Used for monitoring the health and performance of the application.
-- **Prometheus**: Used for monitoring and alerting in the `monitor` component.
+- **Streamlit**: For building the user interface.
+- **AutoGen**: For building the agentic framework.
+- **qdrant**: The vector database for storing and retrieving embeddings.
+- **MongoDB**: For storing dockument chunks and user query history.
+- **tiktoken**: For embedding and chunking data from pdf files.
+- **FastAPI**: Used for exposing APIs for services.
+- **Graphana**: Monitoring the health and performance of the application. Optional.
+- **Prometheus**: Used for monitoring and alerting. Optional.
 
 
 ## Libraries
-- `streamlit`: Used for building the frontend user interface.
-- `autogen`: Used for building the agent that interacts with the vector database.
-- `loguru`: Used for logging and debugging.
-- `python-dotenv`: Manage secrets and environment variables.
-- `fastapi`: Used for building APIs in the `agent` component.
-- `pydantic`: Used for data validation and serialization in the `agent` component.
-- `python-dotenv`: Used for managing environment variables in all components.
-- `tqdm`: Used for progress bars in the `loader` component.
-- `qdrant-client`: Used for interacting with the Qdrant vector database directly
-  component.
-- `pymongo`: Used for interacting with MongoDB in the `historian` component.
-- `LangChain`: Used for embedding and chunking data from pdf files in the `loader`
-  component.
-- `pypdf`: Used for reading pdf files in the `loader` component.
-- `pytest`: Used for testing all components.
+These are the _proposed_ libraries to be used in the project:
+- `streamlit`: For the user interface.
+- `autogen`: For the agentic workflow that integrates the front end and data
+    storage services.
+- `loguru`: For logging.
+- `python-dotenv`: To manage environment variables.
+- `fastapi`: For exposing services as APIs.
+  - `pydantic`: For definitions and validations of API payloads.
+- `python-dotenv`: For managing environment variables in all services.
+- `qdrant-client`: Used for interacting with the Qdrant vector database.
+- `pymongo`: Used for interacting with MongoDB document database.
+- `tiktoken`: Used for embedding and chunking data from pdf files.
+- `pypdf`: Used for reading pdf files.
 
 
-## Utilities
-- `uv` for dependency management and virtual environments.
-- `ruff` for linting and code formatting.
+## CICD Utilities
 - `make` for build automation and task management.
+- `pytest`: For testing all services.
+- `ruff` for linting and code formatting.
+- `uv` for dependency management and virtual environments.
+- Github Actions for continuous integration and deployment (CICD).
 
 
 ## Project Structure
-Here is an outline of important directories and files in the project:
-
+Here is a _proposed_ layout of project's structure:
 ``` plaintext
 project-root/
-  ├─ application/
+  ├─ application/                 # Source directory
+  |    |- historian               # Service directory
+  |    |    |- .env               # Environment variables for the service
+  |    |    |- .env.example
+  |    |    |- __init__.py        # Neccessarry?
+  |    |    |- historian.py       # Functionality of the service
+  |    |    |- main.py            # Entry point for the service
+  |    |    |- <...>              # Other service files
+  |    |    |- Dockerfile         # Dockerfile for the service
+  |    |    └- README.md          # Documentation for the service
   |    |- librarian/
   |    |    |- .env
+  |    |    |- .env.example
+  |    |    |- __init__.py
   |    |    |- librarian.py
   |    |    |- main.py
-  |    |    └- Dockerfile
-  |    |- orchestrator/
+  |    |    |- Dockerfile
+  |    |    └- README.md
+  |    |- loader/
   |    |    |- .env
-  |    |    |- orchestrator.py
+  |    |    |- .env.example
+  |    |    |- __init__.py
+  |    |    |- loader.py
   |    |    |- main.py
-  |    |    └- Dockerfile
-  |    |- historian
-  |    |    |- .env
-  |    |    |- historian.py
-  |    |    |- main.py
-  |    |    └- Dockerfile
-  |    └- loader/
-  |         |- src/
-  |         |    |- __init__.py
-  |         |    |- main.py
-  |         |    └- pdf_processor.py
-  |         |- test/
-  |         |    |- __init__.py
-  |         |    └- test_pdf_processor.py
+  |    |    |- Dockerfile
+  |    |    └- README.md
+  |    └- orchestrator/
   |         |- .env
+  |         |- .env.example
+  |         |- __init__.py
+  |         |- orchestrator.py
+  |         |- main.py
   |         |- Dockerfile
-  |         |- README.md
-  |         |- run_loader.sh
-  |         └- pyproject.toml
+  |         └- README.md
   ├─ share/
   |- data/
   ├─ test/
+  |    loader/
+  |    |- __init__.py
+  |    └- test_loader.py
   |- docker-compose.yml
   └- Makefile
 ```
@@ -100,8 +108,8 @@ project-root/
 
 
 ## General Guidelines
-- Use Python 3.12 or later for all components.
+- Use Python 3.12 or later for all services.
 - Follow PEP 8 style guidelines for Python code.
-- Use type hints for function signatures and class definitions.
+- Use type hints for variables, function signatures and class definitions.
 - Annotate all functions and classes with type hints.
 - Write docstrings for all functions and classes, following the Google style guide.
