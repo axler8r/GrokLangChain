@@ -1,21 +1,22 @@
 {
     "python.testing.pytestArgs": [
-        "application"
+        "./test"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "python.analysis.extraPaths": [
-        "./application/loader",
-        "./application/orchestrator/source",
         "./application/historian",
         "./application/librarian", 
-        "./share/src"
+        "./application/loader",
+        "./application/orchestrator",
+        "./share"
     ],
     "python.analysis.autoSearchPaths": true,
     "python.terminal.activateEnvironment": true,
     "files.exclude": {
         "**/__pycache__": true,
-        "**/*.pyc": true,
-        "**/poetry.lock": false
-    }
+        "**/*.pyc": true
+    },
+    "python-envs.pythonProjects": [],
+    "makefile.configureOnOpen": false
 }

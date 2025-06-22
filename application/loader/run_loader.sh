@@ -11,4 +11,4 @@ export PDF_PATH=${PDF_PATH:-/data/book}
 echo "PDF Path: $PDF_PATH"
 
 # Run the loader
-python source/main.py
+python main.py

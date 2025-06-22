@@ -8,21 +8,22 @@ database storage.
 import os
 import sys
 from pathlib import Path
+from typing import List, LiteralString
 from unittest.mock import Mock, patch
 
 import pytest
 
-# Add the application/loader/source directory to the path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "source"))
+# Add the application loader directory to Python path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "application" / "loader"))
 
 from pdf_processor import PDFProcessor
 
 
 @pytest.fixture
-def test_pdf_path():
+def test_pdf_path() -> Path:
     """Fixture providing the path to the test PDF file."""
     return (
-        Path(__file__).parent.parent.parent.parent
+        Path(__file__).parent.parent.parent
         / "data"
         / "book"
         / "Deep Learning with Python, 2nd Edittion (Deep_Learning_with_Python_Second_Editio).pdf"
@@ -30,7 +31,7 @@ def test_pdf_path():
 
 
 @pytest.fixture
-def mock_pdf_processor():
+def mock_pdf_processor() -> PDFProcessor:
     """Fixture providing a PDFProcessor instance with mocked database connections."""
     with (
         patch("pdf_processor.MongoClient"),
@@ -66,12 +67,12 @@ def mock_pdf_processor():
 class TestPDFProcessor:
     """Test class for PDFProcessor functionality."""
 
-    def test_pdf_file_exists(self, test_pdf_path):
+    def test_pdf_file_exists(self, test_pdf_path: Path) -> None:
         """Test that the test PDF file exists."""
         assert test_pdf_path.exists(), f"Test PDF file not found at {test_pdf_path}"
         assert test_pdf_path.suffix == ".pdf", "Test file should be a PDF"
 
-    def test_extract_text_from_pdf(self, mock_pdf_processor, test_pdf_path):
+    def test_extract_text_from_pdf(self, mock_pdf_processor: PDFProcessor, test_pdf_path: Path) -> None:
         """Test PDF text extraction functionality."""
         text = mock_pdf_processor._extract_text_from_pdf(test_pdf_path)
 
@@ -80,7 +81,7 @@ class TestPDFProcessor:
         assert len(text) > 100, "Extracted text should be substantial (>100 characters)"
 
         # Check for expected content in a Deep Learning book
-        text_lower = text.lower()
+        text_lower: str = text.lower()
         assert any(
             keyword in text_lower
             for keyword in [
@@ -93,13 +94,13 @@ class TestPDFProcessor:
             ]
         ), "Text should contain deep learning related keywords"
 
-    def test_chunk_text(self, mock_pdf_processor, test_pdf_path):
+    def test_chunk_text(self, mock_pdf_processor: PDFProcessor, test_pdf_path: Path) -> None:
         """Test text chunking functionality."""
         # Extract text from PDF
-        text = mock_pdf_processor._extract_text_from_pdf(test_pdf_path)
+        text: str = mock_pdf_processor._extract_text_from_pdf(test_pdf_path)
 
         # Chunk the text
-        chunks = mock_pdf_processor._chunk_text(text)
+        chunks: List[str] = mock_pdf_processor._chunk_text(text)
 
         assert isinstance(chunks, list), "Chunks should be returned as a list"
         assert len(chunks) > 0, "Should produce at least one chunk"
@@ -110,18 +111,20 @@ class TestPDFProcessor:
             assert len(chunk.strip()) > 0, f"Chunk {i} should not be empty"
 
             # Check token count is within expected range
-            token_count = len(mock_pdf_processor.tokenizer.encode(chunk))
+            token_count: int = len(mock_pdf_processor.tokenizer.encode(chunk))
             assert token_count <= mock_pdf_processor.chunk_size, (
                 f"Chunk {i} token count ({token_count}) should not exceed "
                 f"chunk_size ({mock_pdf_processor.chunk_size})"
             )
 
-    def test_chunk_overlap(self, mock_pdf_processor):
+    def test_chunk_overlap(self, mock_pdf_processor: PDFProcessor) -> None:
         """Test that chunking produces overlapping content when expected."""
         # Use a simple test text that we know will produce multiple chunks
-        test_text = "This is a test sentence. " * 100  # Repeat to ensure multiple chunks
+        test_text: LiteralString = (
+            "This is a test sentence. " * 100
+        )  # Repeat to ensure multiple chunks
 
-        chunks = mock_pdf_processor._chunk_text(test_text)
+        chunks: List[str] = mock_pdf_processor._chunk_text(test_text)
 
         if len(chunks) > 1:
             # Check that there's some overlap between consecutive chunks
@@ -129,7 +132,7 @@ class TestPDFProcessor:
             assert len(chunks) >= 2, "Should have multiple chunks for overlap testing"
 
     @patch("pdf_processor.openai.embeddings.create")
-    def test_get_embedding(self, mock_openai_create, mock_pdf_processor):
+    def test_get_embedding(self, mock_openai_create, mock_pdf_processor: PDFProcessor) -> None:
         """Test embedding generation functionality."""
         # Mock OpenAI response
         mock_response = Mock()
@@ -138,7 +141,7 @@ class TestPDFProcessor:
         mock_openai_create.return_value = mock_response
 
         test_text = "This is a test text for embedding generation."
-        embedding = mock_pdf_processor._get_embedding(test_text)
+        embedding: List[float] = mock_pdf_processor._get_embedding(test_text)
 
         assert isinstance(embedding, list), "Embedding should be a list"
         assert len(embedding) == 1536, "Ada-002 embeddings should be 1536 dimensions"
@@ -147,29 +150,33 @@ class TestPDFProcessor:
         )
 
         # Verify OpenAI was called correctly
-        mock_openai_create.assert_called_once_with(input=test_text, model="text-embedding-ada-002")
+        mock_openai_create.assert_called_once_with(
+            input=test_text, model="text-embedding-ada-002"
+        )
 
-    def test_generate_chunk_id(self, mock_pdf_processor):
+    def test_generate_chunk_id(self, mock_pdf_processor: PDFProcessor) -> None:
         """Test chunk ID generation."""
         file_path = "/test/path/file.pdf"
         chunk_index = 5
 
-        chunk_id = mock_pdf_processor._generate_chunk_id(file_path, chunk_index)
+        chunk_id: str = mock_pdf_processor._generate_chunk_id(file_path, chunk_index)
 
         assert isinstance(chunk_id, str), "Chunk ID should be a string"
         assert len(chunk_id) == 32, "MD5 hash should be 32 characters long"
 
         # Test that same inputs produce same ID
-        chunk_id2 = mock_pdf_processor._generate_chunk_id(file_path, chunk_index)
+        chunk_id2: str = mock_pdf_processor._generate_chunk_id(file_path, chunk_index)
         assert chunk_id == chunk_id2, "Same inputs should produce identical chunk IDs"
 
         # Test that different inputs produce different IDs
-        chunk_id3 = mock_pdf_processor._generate_chunk_id(file_path, chunk_index + 1)
-        assert chunk_id != chunk_id3, "Different inputs should produce different chunk IDs"
+        chunk_id3: str = mock_pdf_processor._generate_chunk_id(file_path, chunk_index + 1)
+        assert chunk_id != chunk_id3, (
+            "Different inputs should produce different chunk IDs"
+        )
 
     @patch("pdf_processor.openai.embeddings.create")
     def test_end_to_end_chunking_and_encoding(
-        self, mock_openai_create, mock_pdf_processor, test_pdf_path
+        self, mock_openai_create, mock_pdf_processor: PDFProcessor, test_pdf_path: Path
     ) -> None:
         """Test end-to-end chunking and encoding without database storage."""
         # Mock OpenAI response
@@ -179,13 +186,13 @@ class TestPDFProcessor:
         mock_openai_create.return_value = mock_response
 
         # Extract and chunk text
-        text = mock_pdf_processor._extract_text_from_pdf(test_pdf_path)
-        chunks = mock_pdf_processor._chunk_text(text)
+        text: str = mock_pdf_processor._extract_text_from_pdf(test_pdf_path)
+        chunks: List[str] = mock_pdf_processor._chunk_text(text)
 
         assert len(chunks) > 0, "Should produce chunks from the PDF"
 
         # Test encoding a sample of chunks (limit to avoid too many API calls in tests)
-        sample_chunks = chunks[:3] if len(chunks) >= 3 else chunks
+        sample_chunks: List[str] = chunks[:3] if len(chunks) >= 3 else chunks
 
         for i, chunk in enumerate(sample_chunks):
             # Generate chunk ID
@@ -193,8 +200,10 @@ class TestPDFProcessor:
             assert chunk_id is not None, f"Should generate chunk ID for chunk {i}"
 
             # Get embedding
-            embedding = mock_pdf_processor._get_embedding(chunk)
-            assert len(embedding) == 1536, f"Embedding for chunk {i} should be 1536 dimensions"
+            embedding: List[float] = mock_pdf_processor._get_embedding(chunk)
+            assert len(embedding) == 1536, (
+                f"Embedding for chunk {i} should be 1536 dimensions"
+            )
 
             # Verify chunk data structure (what would be stored in MongoDB)
             chunk_data = {
@@ -209,28 +218,36 @@ class TestPDFProcessor:
             assert chunk_data["source_file"] == str(test_pdf_path), (
                 "Chunk data should have correct source file"
             )
-            assert chunk_data["chunk_index"] == i, "Chunk data should have correct index"
+            assert chunk_data["chunk_index"] == i, (
+                "Chunk data should have correct index"
+            )
             assert chunk_data["text"] == chunk, "Chunk data should have correct text"
-            assert chunk_data["token_count"] > 0, "Chunk data should have positive token count"
+            assert chunk_data["token_count"] > 0, (
+                "Chunk data should have positive token count"
+            )
 
-    def test_tokenizer_initialization(self, mock_pdf_processor):
+    def test_tokenizer_initialization(self, mock_pdf_processor: PDFProcessor) -> None:
         """Test that the tokenizer is properly initialized."""
-        assert mock_pdf_processor.tokenizer is not None, "Tokenizer should be initialized"
+        assert mock_pdf_processor.tokenizer is not None, (
+            "Tokenizer should be initialized"
+        )
 
         # Test tokenizer functionality
         test_text = "Hello, world!"
-        tokens = mock_pdf_processor.tokenizer.encode(test_text)
+        tokens: List[int] = mock_pdf_processor.tokenizer.encode(test_text)
         assert isinstance(tokens, list), "Tokenizer should return list of tokens"
         assert len(tokens) > 0, "Should produce at least one token"
 
         # Test decoding
-        decoded_text = mock_pdf_processor.tokenizer.decode(tokens)
+        decoded_text: str = mock_pdf_processor.tokenizer.decode(tokens)
         assert decoded_text == test_text, "Decoded text should match original"
 
-    def test_chunk_configuration(self, mock_pdf_processor):
+    def test_chunk_configuration(self, mock_pdf_processor: PDFProcessor) -> None:
         """Test that chunk size and overlap are properly configured."""
         assert mock_pdf_processor.chunk_size == 512, "Default chunk size should be 512"
-        assert mock_pdf_processor.chunk_overlap == 64, "Default chunk overlap should be 64"
+        assert mock_pdf_processor.chunk_overlap == 64, (
+            "Default chunk overlap should be 64"
+        )
         assert mock_pdf_processor.chunk_overlap < mock_pdf_processor.chunk_size, (
             "Chunk overlap should be less than chunk size"
         )

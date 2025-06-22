@@ -42,7 +42,7 @@ format: ## Format code
 # test
 test: ## Run tests
 	@echo "Running tests..."
-	OPENAI_API_KEY=test-key pytest application
+	OPENAI_API_KEY=test-key pytest test
 
 test-coverage: ## Run tests with coverage
 	@echo "Running tests with coverage..."
