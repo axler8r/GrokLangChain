@@ -1,36 +1,69 @@
-# variables
+# variables --------------------------------------------------------->8---------
+APPLICATION_HOME := application
+COMPONENTS = historian librarian loader orchestrator
+
 PYTHON ?= python3
 PYTHON_VENV ?= .venv
 
-PHONY = help up down log ps build lint format test test-coverage
+# phony ------------------------------------------------------------->8---------
+.PHONY = help lint format test test-coverage loader.up loader.down loader.build loader.status loader.logs
 
-.PHONY: $(PHONY)
-
-# Default target
+# default target ---------------------------------------------------->8---------
 help: ## Show this help message
 	@echo "Available targets:"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-# docker compose
-up: ## Start docker compose services
-	@echo "Starting Docker Compose services..."
-	docker compose up --build --detach
+# application targets ----------------------------------------------->8---------
+application.up: ## Start the application
+	@echo "Starting application..."
+	docker compose up --detach
 
-down: ## Stop docker compose services
-	@echo "Stopping Docker Compose services..."
+application.down: ## Stop the application
+	@echo "Stopping application..."
 	docker compose down
 
-log: ## Show the logs of docker compose services
-	@echo "Showing logs of Docker Compose services..."
-	docker compose logs --follow --tail=100
+application.build: ## Build the application
+	@echo "Building application..."
+	for component in $(COMPONENTS); do \
+		uv export --group $$component --output $$APPLICATION_HOME/$$component/requirements.txt; \
+	done
+	docker compose build
+	@echo "Removing requirements.txt files after build..."
+	for component in $(COMPONENTS); do \
+		rm -f $(APPLICATION_HOME)/$$component/requirements.txt; \
+	done
 
-ps: ## Show the status of the docker compose services
-	@echo "Showing status of Docker Compose services..."
+application.status: ## Check the status of the application
+	@echo "Checking application status..."
 	docker compose ps
 
-build: ## Build docker compose services
-	@echo "Building Docker Compose services..."
-	docker compose build
+application.logs: ## Fetch application logs
+	@echo "Fetching application logs..."
+
+# loader targets ---------------------------------------------------->8---------
+loader.up: ## Start the loader service
+	@echo "Starting loader service..."
+	docker compose up -d loader
+
+loader.down: ## Stop the loader service
+	@echo "Stopping loader service..."
+	docker compose stop loader
+
+loader.build: ## Build the loader service
+	@echo "Generating requirements.txt for loader..."
+	uv export --group loader --output $(APPLICATION_HOME)/loader/requirements.txt
+	@echo "Building loader service..."
+	docker compose build loader
+	@echo "Removing requirements.txt after build..."
+	rm -f $(APPLICATION_HOME)/loader/requirements.txt
+
+loader.status: ## Check the status of the loader service
+	@echo "Checking loader service status..."
+	docker compose ps loader
+
+loader.logs: ## Fetch loader service logs
+	@echo "Fetching loader service logs..."
+	docker compose logs -f loader
 
 # code
 lint: ## Lint code
