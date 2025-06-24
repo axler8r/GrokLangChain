@@ -13,18 +13,13 @@
             ".venv/": true,
         },
         "material-icon-theme.folders.associations": {
-            "orchestrator": "android",
-            "loader": "batch",
-            "historian": "log",
-            "infrastructure": "bicep",
-            "librarian": "client",
-            "share": "shared",
-            "experiment": "middleware",
+            "biblioteq": "app",
         },
         "github.copilot.chat.codeGeneration.instructions": [
             {"file": ".github/copilot-instructions.md", "language": "markdown"},
             {"file": "documentation/architecture.md", "language": "markdown"}
-        ]
+        ],
+        "makefile.configureOnOpen": false
     }
 }
 
