@@ -19,3 +19,6 @@ loader = [
     "qdrant-client>=1.14.3",
     "tiktoken>=0.9.0",
 ]
+orchestrator = [ ]
+librarian = [ ]
+historian = [ ]

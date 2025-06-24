@@ -103,17 +103,17 @@ clean: ## Clean up application
 
 
 # code formatting and linting targets ------------------------------->8---------
-lint: ## Lint code
+code.lint: ## Lint code
     @echo "Running ruff..."
-    ruff check application
+    <COMMAND_TO_RUN_RUFF_TO_CHECK_CODE>
 
-format: ## Format code
+code.format: ## Format code
     @echo "Running ruff for code formatting..."
-    ruff format application
+    <COMMAND_TO_RUN_RUFF_TO_FORMAT_CODE>
 
-pytest: ## Test code
+code.pytest: ## Test code
     @echo "Running pytest..."
-    pytest test
+    <COMMAND_TO_RUN_PYTEST>
 
 <OTHER_TARGETS_GO_HERE>
 ```
