@@ -8,7 +8,7 @@ import os
 import sys
 from pathlib import Path
 
-from loader import Loader
+from .loader import Loader
 
 
 def get_pdf_path() -> str:

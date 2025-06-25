@@ -3,7 +3,7 @@ PYTHON ?= python3
 
 
 # phony ------------------------------------------------------------->8---------
-.PHONY = help up down build status logs lint format test test-coverage
+.PHONY: help up down build status logs lint format test test-coverage
 
 
 # default target ---------------------------------------------------->8---------
@@ -28,10 +28,10 @@ check-req: ## Create a requirements.txt file from the current environment
 		rm requirements.txt; \
 	fi
 	@echo "Creating new requirements.txt..."
-	uv --export requirements.txt --output-file requirements.txt
+	uv export --format requirements-txt --output-file requirements.txt
 
 build: check-req ## Build all application components
-	@echo "Application build complete...
+	@echo "Application build complete..."
 	docker compose build
 
 
@@ -46,16 +46,16 @@ logs: ## Show logs of the application
 
 # code formatting and linting targets ------------------------------->8---------
 lint: ## Lint code
-	ruff --fix --exit-zero --show-source --line-length 100 .
+	ruff check --fix --exit-zero --line-length 100 .
 
 format: ## Format code
-	ruff format --exit-zero --line-length 100 .
+	ruff format --line-length 100 .
 
 # test
 test: ## Run tests
 	@echo "Running tests..."
-	OPENAI_API_KEY=test-key pytest test
+	OPENAI_API_KEY=test-key python -m pytest test
 
 test-coverage: ## Run tests with coverage
 	@echo "Running tests with coverage..."
-	OPENAI_API_KEY=test-key pytest --cov=application --cov-report=html --cov-report=term-missing application
+	OPENAI_API_KEY=test-key python -m pytest --cov=biblioteq --cov-report=html --cov-report=term-missing test
