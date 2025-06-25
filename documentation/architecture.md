@@ -21,6 +21,8 @@ The application will allow users to:
     from a vector database and generates responses based on user queries.
 - `loader`: Chunks and encodes data from pdf files (my books) and stores
     it in a vector database and document database.
+- `retriever`: A service that retrieves data from the vector database
+    and document database based on user queries.
 - `inspector`: A database inspection service for browsing and analyzing stored
     documents, chunks, and embeddings in MongoDB and Qdrant. *(To be implemented)*
 

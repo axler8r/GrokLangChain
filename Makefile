@@ -60,9 +60,23 @@ format: ## Format code
 	ruff format --line-length 100 .
 
 # test
-test: ## Run tests
-	@echo "Running tests..."
-	OPENAI_API_KEY=test-key python -m pytest test
+test: ## Run unit tests (fast, no external dependencies)
+	@echo "Running unit tests..."
+	OPENAI_API_KEY=test-key uv run python -m pytest test/loader/ test/retriever/test_retriever_unit.py -v
+
+test-integration: ## Run integration tests with real databases and API
+	@echo "Running integration tests..."
+	@echo "⚠️  Make sure Docker containers are running: make up"
+	@if [ -z "$$OPENAI_API_KEY" ]; then \
+		echo "⚠️  Loading OPENAI_API_KEY from .env file..."; \
+		export $$(grep OPENAI_API_KEY biblioteq/.env 2>/dev/null | xargs); \
+	fi && \
+	uv run python -m pytest test/integration/ -v -s
+
+test-all: ## Run all tests (unit + integration)
+	@echo "Running all tests..."
+	@$(MAKE) test
+	@$(MAKE) test-integration
 
 test-coverage: ## Run tests with coverage
 	@echo "Running tests with coverage..."
