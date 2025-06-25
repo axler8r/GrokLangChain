@@ -13,26 +13,34 @@ help: ## Show this help message
 
 
 # lifecycle targets ------------------------------------------------->8---------
+dev: ## Run the web app locally for development
+	@echo "Starting web app in development mode..."
+	uv run streamlit run biblioteq/ui/web/app.py
+
 up: ## Start the application
 	@echo "Starting application..."
 	docker compose up --detach
+	@echo ""
+	@echo "✓ BiblioTeq is starting up!"
+	@echo "📚 Web frontend will be available at: http://localhost:8501"
+	@echo ""
+	@echo "Use 'make logs' to view application logs"
+	@echo "Use 'make status' to check service status"
 
 down: ## Stop the application
 	@echo "Stopping application..."
 	docker compose down
 
 check-req: ## Create a requirements.txt file from the current environment
-	@echo "Checking requirements..."
-	@if [ -f requirements.txt ]; then \
-		echo "Removing existing requirements.txt..."; \
-		rm requirements.txt; \
-	fi
-	@echo "Creating new requirements.txt..."
+	@echo "Exporting requirements from uv..."
 	uv export --format requirements-txt --output-file requirements.txt
 
 build: check-req ## Build all application components
-	@echo "Application build complete..."
+	@echo "Building Docker images..."
 	docker compose build
+	@echo "Cleaning up requirements.txt..."
+	rm -f requirements.txt
+	@echo "Application build complete..."
 
 
 status: ## Show the status of the application

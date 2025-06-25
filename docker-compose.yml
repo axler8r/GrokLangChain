@@ -13,16 +13,14 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
 
-  loader:
-    build:
-      context: ./application/loader
+  web:
+    build: .
+    ports:
+      - "8501:8501"
     volumes:
-      - ./application/loader:/app
-      - ./share:/share
       - ./data:/data
     environment:
       - PYTHONPATH=/app:/share
-      - PDF_PATH=${PDF_PATH:-/data/book}
       - QDRANT_HOST=qdrant
       - MONGO_URI=mongodb://mongo:27017
     restart: unless-stopped

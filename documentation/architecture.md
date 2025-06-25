@@ -4,6 +4,15 @@ The project is called **BiblioTeq**.
 The application will be deployed as a **Docker Compose** application.
 
 
+## Functionality
+The application will allow users to:
+- Upload pdf files of books.
+- The upload can be done through a web interface or a command line interface.
+- Query the content of the books using natural language from a web interface.
+- The application will use an agentic service to interpret user requests, pull
+  data from a vector database, and generate responses based on user queries.
+
+
 ## Modules
 - `ui`: The frontent.
   - `web`: A web application built with Streamlit.
@@ -12,6 +21,7 @@ The application will be deployed as a **Docker Compose** application.
     from a vector database and generates responses based on user queries.
 - `loader`: Chunks and encodes data from pdf files (my books) and stores
     it in a vector database and document database.
+
 
 ## Libraries
 These are the _proposed_ libraries to be used in the project:
@@ -47,11 +57,13 @@ project-root/
   |    |- .env
   |    |- .env.example
   |    |- agent.py
+  |    |- <other_files>
   |    |- loader.py
   |    └- main.py
   |- data/
   ├─ test/
   |    |- test_historian.py
+  |    |- <other_test_files>>
   |    └- test_loader.py
   |- Dockerfile
   |- docker-compose.yml
