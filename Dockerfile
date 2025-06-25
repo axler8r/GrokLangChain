@@ -18,7 +18,7 @@ COPY . .
 ENV PYTHONPATH=/app:/share
 
 # Create a cron job to run the loader weekly (every Sunday at 2 AM)
-RUN echo "0 2 * * 0 cd /app && python main.py >> /var/log/cron.log 2>&1" > /etc/cron.d/loader-cron \
+RUN echo "0 2 * * 0 cd /app && python -m biblioteq.main >> /var/log/cron.log 2>&1" > /etc/cron.d/loader-cron \
     && chmod 0644 /etc/cron.d/loader-cron \
     && crontab /etc/cron.d/loader-cron \
     && touch /var/log/cron.log

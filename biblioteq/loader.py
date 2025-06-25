@@ -32,7 +32,10 @@ class Loader:
     """
 
     def __init__(
-        self, env_file: Optional[str] = None, chunk_size: int = 512, chunk_overlap: int = 64
+        self,
+        env_file: Optional[str] = None,
+        chunk_size: int = 512,
+        chunk_overlap: int = 64,
     ) -> None:
         """Initialize the Loader with database connections from .env file.
 
@@ -75,8 +78,7 @@ class Loader:
         openai.api_key = openai_api_key
 
         # Initialize tokenizer for Ada 002
-        self.tokenizer: tiktoken.Encoding = tiktoken.encoding_for_model(
-            "text-embedding-ada-002")
+        self.tokenizer: tiktoken.Encoding = tiktoken.encoding_for_model("text-embedding-ada-002")
 
         # Ensure Qdrant collection exists
         self._ensure_qdrant_collection()
@@ -89,8 +91,7 @@ class Loader:
             # Collection doesn't exist, create it
             self.qdrant_client.create_collection(
                 collection_name=self.qdrant_collection,
-                vectors_config=VectorParams(
-                    size=1536, distance=Distance.COSINE),
+                vectors_config=VectorParams(size=1536, distance=Distance.COSINE),
             )
 
     def _extract_text_from_pdf(self, pdf_path: Path) -> str:
@@ -184,8 +185,7 @@ class Loader:
             metadata: Additional metadata for the vector
         """
         point = PointStruct(id=chunk_id, vector=vector, payload=metadata)
-        self.qdrant_client.upsert(
-            collection_name=self.qdrant_collection, points=[point])
+        self.qdrant_client.upsert(collection_name=self.qdrant_collection, points=[point])
 
     def process_pdf_file(self, pdf_path: Path) -> int:
         """Process a single PDF file through the complete pipeline.
@@ -252,8 +252,7 @@ class Loader:
             Exception: If directory access fails or processing errors occur
         """
         if not directory_path.exists() or not directory_path.is_dir():
-            raise ValueError(
-                f"Directory {directory_path} does not exist or is not a directory")
+            raise ValueError(f"Directory {directory_path} does not exist or is not a directory")
 
         results = {}
         pdf_files: List[Path] = list(directory_path.glob("*.pdf"))
