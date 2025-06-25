@@ -1,0 +1,48 @@
+.main-header {
+    background: linear-gradient(90deg, #1976D2 0%, #1565C0 100%);
+    color: white;
+    padding: 1rem;
+    margin: -1rem -1rem 2rem -1rem;
+    border-radius: 0 0 8px 8px;
+}
+
+.section-header {
+    color: #1976D2;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #E3F2FD;
+    padding-bottom: 0.5rem;
+}
+
+.sidebar .block-container {
+    padding-top: 2rem;
+}
+
+.stButton > button {
+    width: 100%;
+    background-color: #1976D2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.stButton > button:hover {
+    background-color: #1565C0;
+}
+
+.upload-section {
+    background-color: #F5F5F5;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+.query-section {
+    background-color: #F5F5F5;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
