@@ -5,7 +5,6 @@ WORKDIR /app
 RUN apt update \
     && apt install --yes --no-install-recommends \
         curl \
-        cron \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install dependencies
@@ -17,11 +16,8 @@ COPY . .
 
 ENV PYTHONPATH=/app:/share
 
-# Create a cron job to run the loader weekly (every Sunday at 2 AM)
-RUN echo "0 2 * * 0 cd /app && python -m biblioteq.main >> /var/log/cron.log 2>&1" > /etc/cron.d/loader-cron \
-    && chmod 0644 /etc/cron.d/loader-cron \
-    && crontab /etc/cron.d/loader-cron \
-    && touch /var/log/cron.log
+# Expose Streamlit port
+EXPOSE 8501
 
-# Start cron and keep the container running
-CMD ["sh", "-c", "cron && tail --follow /var/log/cron.log"]
+# Start Streamlit app
+CMD ["streamlit", "run", "biblioteq/ui/web/app.py", "--server.address", "0.0.0.0", "--server.port", "8501"]
