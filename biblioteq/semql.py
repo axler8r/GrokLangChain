@@ -72,16 +72,26 @@ class RetrieveDocumentsTool(BaseTool[RetrieveDocumentsInput, RetrieveDocumentsOu
             )
 
         try:
-            # TODO: Call actual retriever service
-            # For now, return placeholder data
-            chunks = [
-                {
-                    "content": f"Sample content from your eBooks that matches the query: {args.query}",
-                    "source": "sample_book.pdf",
-                    "page": 42,
-                    "score": 0.85,
+            # Call actual retriever service
+            results = self.retriever_service.search(
+                query=args.query,
+                max_results=5,  # Default limit
+                min_similarity_threshold=0.1  # Default threshold
+            )
+            
+            # Format results for the tool output
+            chunks = []
+            for result in results:
+                chunk = {
+                    "content": result.text,
+                    "source": result.source_file,
+                    "page": getattr(result, 'page', None),
+                    "chunk_index": result.chunk_index,
+                    "score": result.similarity_score,
+                    "chunk_id": result.chunk_id
                 }
-            ]
+                chunks.append(chunk)
+            
             return RetrieveDocumentsOutput(chunks=chunks, total_results=len(chunks))
         except Exception as e:
             return RetrieveDocumentsOutput(
