@@ -155,7 +155,7 @@ OPENAI_API_KEY={openai_key}
         """Test that the loader stored vector embeddings in Qdrant."""
         collection_info = loader.qdrant_client.get_collection(loader.qdrant_collection)
 
-        assert collection_info.points_count > 0, "No vectors found in Qdrant" # type: ignore
+        assert collection_info.points_count > 0, "No vectors found in Qdrant"  # type: ignore
 
         # Test that we can retrieve a point with vectors
         points = loader.qdrant_client.scroll(
