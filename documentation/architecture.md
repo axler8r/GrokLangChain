@@ -17,10 +17,12 @@ The application will allow users to:
 - `ui`: The frontent.
   - `web`: A web application built with Streamlit.
   - `cli`: A command line interface for interacting with the application.
-- `agent`: An agentic service that interprets user requests, pulls data
+- `semql`: An agentic service that interprets user requests, pulls data
     from a vector database and generates responses based on user queries.
 - `loader`: Chunks and encodes data from pdf files (my books) and stores
     it in a vector database and document database.
+- `retriever`: A service that retrieves data from the vector database
+    and document database based on user queries.
 - `inspector`: A database inspection service for browsing and analyzing stored
     documents, chunks, and embeddings in MongoDB and Qdrant. *(To be implemented)*
 
@@ -58,9 +60,10 @@ project-root/
   |    |         └- app.py
   |    |- .env
   |    |- .env.example
-  |    |- agent.py
-  |    |- <other_files>
+  |    |- semql.py
   |    |- loader.py
+  |    |- retriever.py
+  |    |- <other_files>
   |    └- main.py
   |- data/
   ├─ test/
