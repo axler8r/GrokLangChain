@@ -5,8 +5,10 @@ retrieves relevant data from vector and document databases, and generates
 responses based on user queries.
 """
 
+from asyncio import AbstractEventLoop
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
+import json
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base._chat_agent import Response
@@ -62,7 +64,15 @@ class RetrieveDocumentsTool(BaseTool[RetrieveDocumentsInput, RetrieveDocumentsOu
     async def run(
         self, args: RetrieveDocumentsInput, cancellation_token: CancellationToken
     ) -> RetrieveDocumentsOutput:
-        """Execute the document retrieval."""
+        """Execute the document retrieval.
+
+        Args:
+            args: Input arguments containing the search query
+            cancellation_token: Token for cancelling the operation
+
+        Returns:
+            RetrieveDocumentsOutput containing the retrieved chunks
+        """
         if not self.retriever_service:
             return RetrieveDocumentsOutput(
                 chunks=[
@@ -72,26 +82,32 @@ class RetrieveDocumentsTool(BaseTool[RetrieveDocumentsInput, RetrieveDocumentsOu
             )
 
         try:
-            # Call actual retriever service
-            results = self.retriever_service.search(
-                query=args.query,
-                max_results=5,  # Default limit
-                min_similarity_threshold=0.1  # Default threshold
-            )
-            
+            # Call retriever service synchronously in async context
+            # Use asyncio.get_event_loop().run_in_executor to avoid blocking
+            import asyncio
+            import concurrent.futures
+
+            loop: AbstractEventLoop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                results = await loop.run_in_executor(
+                    executor,
+                    lambda: self.retriever_service.search(
+                        query=args.query, max_results=5, min_similarity_threshold=0.1
+                    ),
+                )
+
             # Format results for the tool output
             chunks = []
             for result in results:
                 chunk = {
                     "content": result.text,
                     "source": result.source_file,
-                    "page": getattr(result, 'page', None),
                     "chunk_index": result.chunk_index,
                     "score": result.similarity_score,
-                    "chunk_id": result.chunk_id
+                    "chunk_id": result.chunk_id,
                 }
                 chunks.append(chunk)
-            
+
             return RetrieveDocumentsOutput(chunks=chunks, total_results=len(chunks))
         except Exception as e:
             return RetrieveDocumentsOutput(
@@ -127,20 +143,73 @@ class SemanticQueryLayer:
     def _setup_agents(self) -> None:
         """Set up the autogen agents for the workflow."""
         # Get model client configuration
-        model_config = self.config.get(
+        raw_model_config = self.config.get(
             "model_config",
             {
                 "model": "gpt-4",
-                "api_key": "your-api-key",  # This should come from environment or config
+                "api_key": "your-api-key",
             },
         )
 
-        # Create model client - this will need proper configuration
-        # For now, we'll store the config to create the client when needed
-        self.model_config = model_config
+        # Convert to proper Autogen component format
+        self.model_config = {
+            "provider": "OpenAIChatCompletionClient",
+            "config": {
+                "model": raw_model_config.get("model", "gpt-4"),
+                "api_key": raw_model_config.get("api_key"),
+            },
+        }
 
         # Create the retrieval tool
         self.retrieval_tool = RetrieveDocumentsTool(self.retriever_service)
+
+    def _extract_sources_from_messages(self, messages: List[Any]) -> List[Dict[str, Any]]:
+        """Extract source information from tool call results.
+
+        Args:
+            messages: List of messages from the conversation
+
+        Returns:
+            List of source dictionaries
+        """
+        sources = []
+        for message in messages:
+            # Handle different message types that might contain tool results
+            if hasattr(message, "content") and isinstance(message.content, str):
+                try:
+                    result_data = json.loads(message.content)
+                    if isinstance(result_data, dict) and "chunks" in result_data:
+                        for chunk in result_data["chunks"]:
+                            source = {
+                                "source": chunk.get("source", "Unknown"),
+                                "content": chunk.get("content", "")[:200],  # Truncate for display
+                                "score": chunk.get("score", 0.0),
+                                "chunk_index": chunk.get("chunk_index", 0),
+                            }
+                            sources.append(source)
+                except (json.JSONDecodeError, TypeError):
+                    continue
+        return sources
+
+    def _calculate_confidence(self, sources: List[Dict[str, Any]]) -> float:
+        """Calculate confidence score based on retrieval results.
+
+        Args:
+            sources: List of source dictionaries with scores
+
+        Returns:
+            Confidence score between 0.0 and 1.0
+        """
+        if not sources:
+            return 0.0
+
+        # Use the highest similarity score as base confidence
+        max_score = max(source.get("score", 0.0) for source in sources)
+
+        # Adjust based on number of sources (more sources = higher confidence)
+        source_bonus: float = min(len(sources) * 0.1, 0.3)
+
+        return min(max_score + source_bonus, 1.0)
 
     async def query(
         self, user_query: str, context: Optional[Dict[str, Any]] = None
@@ -161,52 +230,101 @@ class SemanticQueryLayer:
             raise ValueError("Query cannot be empty")
 
         try:
-            # Create model client (this would typically be done once and reused)
-            model_client = ChatCompletionClient.load_component(self.model_config)
+            # For now, let's simplify by directly using the retrieval tool and then generating a response
+            # This avoids the complex agent workflow issues
 
-            # Create assistant agent with retrieval tool
-            assistant_agent = AssistantAgent(
-                name="assistant",
-                model_client=model_client,
-                tools=[self.retrieval_tool],
-                system_message=
-                """
-You are a helpful assistant that answers questions about technical books and documentation.
-
-Use the retrieve_documents tool to find relevant information from the user's
-eBook collection.  Provide comprehensive answers based on the retrieved context.
-Be precise and cite specific information when possible.  If the context doesn't
-contain enough information to answer the question, say so clearly.
-                """.strip(),
+            # First, retrieve relevant documents
+            retrieval_result: RetrieveDocumentsOutput = await self.retrieval_tool.run(
+                RetrieveDocumentsInput(query=user_query), CancellationToken()
             )
 
-            # Create the user message
-            user_message = TextMessage(content=user_query, source="user")
+            # Extract sources from retrieval result
+            sources = []
+            if retrieval_result.chunks:
+                for chunk in retrieval_result.chunks:
+                    source: Dict[str, Any] = {
+                        "source": chunk.get("source", "Unknown"),
+                        "content": chunk.get("content", "")[:200],  # Truncate for display
+                        "score": chunk.get("score", 0.0),
+                        "chunk_index": chunk.get("chunk_index", 0),
+                    }
+                    sources.append(source)
 
-            # Get response from assistant
-            response: Response = await assistant_agent.on_messages(
-                messages=[user_message], cancellation_token=CancellationToken()
-            )
+            # Calculate confidence based on retrieval quality
+            confidence = self._calculate_confidence(sources)
 
-            # Extract the final response
-            final_response = "No response generated"
-            if response.chat_message:
-                if isinstance(response.chat_message, TextMessage):
-                    final_response = response.chat_message.content
+            # For now, create a simple summarized response based on the retrieved content
+            if sources:
+                # Create context from retrieved chunks
+                context_text = "\n\n".join(
+                    [chunk.get("content", "") for chunk in retrieval_result.chunks]
+                )
+
+                # Create model client for generating summary
+                if "provider" in self.model_config:
+                    model_config = self.model_config
                 else:
-                    # Handle other message types safely
-                    final_response = str(response.chat_message)
+                    model_config = {
+                        "provider": "openai",
+                        "config": {
+                            "model": self.model_config.get("model", "gpt-4"),
+                            "api_key": self.model_config.get("api_key"),
+                        },
+                    }
+
+                try:
+                    model_client = ChatCompletionClient.load_component(model_config)
+
+                    # Create assistant agent for summarization
+                    assistant_agent = AssistantAgent(
+                        name="research_assistant",
+                        model_client=model_client,
+                        tools=[],  # No tools needed for simple summarization
+                        system_message=f"""You are a knowledgeable research assistant. Based on the following context from technical books and documentation, provide a clear, comprehensive answer to the user's question.
+
+Context:
+{context_text[:4000]}  # Limit context to avoid token limits
+
+Question: {user_query}
+
+Provide a direct, helpful answer that synthesizes the information from the context. If the context doesn't contain sufficient information to fully answer the question, clearly state this limitation.""",
+                    )
+
+                    # Get response from assistant
+                    user_message = TextMessage(content=user_query, source="user")
+                    response: Response = await assistant_agent.on_messages(
+                        messages=[user_message], cancellation_token=CancellationToken()
+                    )
+
+                    final_answer = (
+                        "I apologize, but I couldn't generate a proper response to your query."
+                    )
+                    if response.chat_message and isinstance(response.chat_message, TextMessage):
+                        final_answer: str = response.chat_message.content
+
+                except Exception as e:
+                    # Fallback to a simple context-based response if agent fails
+                    final_answer = f"Based on the retrieved information: {context_text[:500]}..."
+                    if len(context_text) > 500:
+                        final_answer += f"\n\nI found {len(sources)} relevant sections from your books, but encountered an issue generating a detailed summary: {str(e)}"
+            else:
+                final_answer = "I couldn't find any relevant information in your book collection to answer this query. Please try rephrasing your question or check if the relevant documents have been uploaded."
 
             return QueryResponse(
-                answer=final_response,
-                sources=[],  # TODO: Extract from retrieval results
-                confidence=0.8,  # TODO: Calculate based on retrieval scores
-                metadata={"query": user_query, "status": "success"},
+                answer=final_answer,
+                sources=sources,
+                confidence=confidence,
+                metadata={
+                    "query": user_query,
+                    "status": "success",
+                    "sources_found": len(sources),
+                    "retrieval_total": retrieval_result.total_results,
+                },
             )
 
         except Exception as e:
             return QueryResponse(
-                answer=f"Sorry, I encountered an error processing your query: {str(e)}",
+                answer=f"I encountered an error while processing your query: {str(e)}",
                 sources=[],
                 confidence=0.0,
                 metadata={"query": user_query, "status": "error", "error": str(e)},

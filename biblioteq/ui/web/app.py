@@ -1,3 +1,19 @@
+import streamlit as st
+import tempfile
+import asyncio
+import sys
+import os
+from pathlib import Path
+from typing import Dict, Any
+from asyncio import Task
+
+from streamlit.delta_generator import DeltaGenerator
+from biblioteq.loader import Loader
+from biblioteq.retriever import Retriever
+from biblioteq.semql import SemanticQueryLayer
+from qdrant_client import QdrantClient
+from pymongo import MongoClient
+
 """
 BiblioTeq Web Frontend
 
@@ -5,24 +21,18 @@ A Streamlit-based web interface for uploading PDF documents and querying
 book content using natural language.
 """
 
-import streamlit as st
-import tempfile
-from pathlib import Path
-
-# Import the loader module
-import sys
-
-sys.path.append(str(Path(__file__).parent.parent.parent))
-from biblioteq.loader import Loader
+# Add the project root to Python path
+project_root: Path = Path(__file__).parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 
 def apply_material_design_styles() -> None:
     """Apply Material Design-inspired CSS styles to the Streamlit app."""
     # Load CSS from external file
-    css_path = Path(__file__).parent / "styles.css"
+    css_path: Path = Path(__file__).parent / "styles.css"
 
     with open(css_path, "r") as css_file:
-        css_content = css_file.read()
+        css_content: str = css_file.read()
 
     st.markdown(f"<style>{css_content}</style>", unsafe_allow_html=True)
 
@@ -65,8 +75,8 @@ def render_load_section() -> None:
                     loader = Loader()
 
                     # Process each uploaded file
-                    progress_bar = st.progress(0)
-                    status_text = st.empty()
+                    progress_bar: DeltaGenerator = st.progress(0)
+                    status_text: DeltaGenerator = st.empty()
                     results = {}
 
                     for i, uploaded_file in enumerate(uploaded_files):
@@ -125,18 +135,178 @@ def render_query_section() -> None:
         col1, col2 = st.columns([1, 4])
         with col1:
             if st.button("Search", key="search_btn", disabled=not query.strip()):
-                # TODO: Implement agent query functionality
                 with st.spinner("Searching your library..."):
-                    st.session_state.last_query = query
-                    st.session_state.query_result = (
-                        "Query functionality will be integrated with the agent module"
-                    )
+                    # Process query using SemanticQueryLayer
+                    result, error = process_query_sync(query)
 
-        if hasattr(st.session_state, "query_result"):
+                    if error:
+                        st.session_state.query_error = error
+                        st.session_state.query_result = None
+                    else:
+                        st.session_state.last_query = query
+                        st.session_state.query_result = result
+                        st.session_state.query_error = None
+
+        # Display results
+        if hasattr(st.session_state, "query_error") and st.session_state.query_error:
+            st.error(f"Query failed: {st.session_state.query_error}")
+
+        if hasattr(st.session_state, "query_result") and st.session_state.query_result:
+            result = st.session_state.query_result
+
             st.markdown("### Response")
-            st.write(st.session_state.query_result)
+            st.write(result.answer)
+
+            # Display metadata
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Confidence", f"{result.confidence:.1%}")
+            with col2:
+                st.metric("Status", result.metadata.get("status", "unknown").title())
+            with col3:
+                st.metric("Sources", len(result.sources))
+
+            # Display sources if available
+            if result.sources:
+                with st.expander("View Sources"):
+                    for i, source in enumerate(result.sources, 1):
+                        st.markdown(f"**Source {i}:** {source.get('source', 'Unknown')}")
+                        st.text(source.get("content", "No content")[:200] + "...")
+                        st.markdown("---")
 
         st.markdown("</div>", unsafe_allow_html=True)
+
+
+@st.cache_resource
+def initialize_semql() -> None | SemanticQueryLayer:
+    """Initialize and cache the SemanticQueryLayer instance."""
+    try:
+        # Get the .env file path
+        env_file: Path = Path(__file__).parent.parent.parent / ".env"
+
+        # Create retriever with environment-based connections
+        retriever = Retriever(env_file=str(env_file), max_results=5, min_similarity_threshold=0.1)
+
+        # Use environment variables for connections (Docker-aware)
+        qdrant_host: str = os.getenv("QDRANT_HOST", "localhost")
+        qdrant_port = int(os.getenv("QDRANT_PORT", "6333"))
+        mongo_uri: str = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+        mongo_db: str = os.getenv("MONGO_DB", "bibioteq")
+        mongo_collection: str = os.getenv("MONGO_COLLECTION", "chunks")
+
+        # Override connections with environment-aware settings
+        retriever.qdrant_client = QdrantClient(host=qdrant_host, port=qdrant_port)
+        retriever.mongo_client = MongoClient(mongo_uri)
+        retriever.mongo_collection = retriever.mongo_client[mongo_db][mongo_collection]
+
+        # Read OpenAI API key from .env file
+        api_key = ""
+        if env_file.exists():
+            with open(env_file, "r") as f:
+                for line in f:
+                    if line.startswith("OPENAI_API_KEY="):
+                        api_key: str = line.split("=", 1)[1].strip()
+                        break
+
+        if not api_key:
+            st.error("OPENAI_API_KEY not found in .env file")
+            return None
+
+        # Configure the model with proper Autogen 0.6.x format
+        config = {
+            "model_config": {
+                "provider": "openai",
+                "config": {
+                    "model": "gpt-4",
+                    "api_key": api_key,
+                },
+            }
+        }
+
+        # Create and return SemanticQueryLayer
+        return SemanticQueryLayer(retriever_service=retriever, config=config)
+
+    except Exception as e:
+        st.error(f"Failed to initialize query system: {str(e)}")
+        return None
+
+
+async def process_query_async(semql, query: str):  # -> Any:
+    """Process a query asynchronously using the SemanticQueryLayer."""
+    try:
+        result = await semql.query(query)
+        return result
+    except Exception as e:
+        raise e
+
+
+def process_query_sync(query: str):
+    """Synchronous wrapper for query processing."""
+    semql: None | SemanticQueryLayer = initialize_semql()
+    if semql is None:
+        return None, "Failed to initialize query system"
+
+    try:
+        # Check if there's already an event loop running (Streamlit context)
+        try:
+            loop: asyncio.AbstractEventLoop = asyncio.get_running_loop()
+            # If there's already a loop, we need to run in a separate thread
+            import threading
+
+            result_container: Dict[str, Any] = {"result": None, "error": None}
+
+            def run_async() -> None:
+                try:
+                    new_loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    try:
+                        result = new_loop.run_until_complete(process_query_async(semql, query))
+                        result_container["result"] = result
+                    finally:
+                        # Clean up pending tasks before closing loop
+                        pending: set[Task[Any]] = asyncio.all_tasks(new_loop)
+                        for task in pending:
+                            task.cancel()
+
+                        # Wait for cancelled tasks to finish
+                        if pending:
+                            new_loop.run_until_complete(
+                                asyncio.gather(*pending, return_exceptions=True)
+                            )
+
+                        new_loop.close()
+                except Exception as e:
+                    result_container["error"] = str(e)
+
+            thread = threading.Thread(target=run_async)
+            thread.start()
+            thread.join()
+
+            if result_container["error"]:
+                return None, result_container["error"]
+            return result_container["result"], None
+
+        except RuntimeError:
+            # No event loop running, we can create our own
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                result = loop.run_until_complete(process_query_async(semql, query))
+                return result, None
+            finally:
+                # Clean up pending tasks before closing loop
+                pending: set[Task[Any]] = asyncio.all_tasks(loop)
+                for task in pending:
+                    task.cancel()
+
+                # Wait for cancelled tasks to finish
+                if pending:
+                    loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+
+                loop.close()
+
+    except Exception as e:
+        return None, str(e)
 
 
 def main() -> None:
@@ -152,7 +322,7 @@ def main() -> None:
     with st.sidebar:
         st.markdown("## Navigation")
 
-        action = st.radio(
+        action: str = st.radio(
             "Select Action",
             ["Load", "Query"],
             index=0,

@@ -15,7 +15,7 @@ help: ## Show this help message
 # lifecycle targets ------------------------------------------------->8---------
 dev: ## Run the web app locally for development
 	@echo "Starting web app in development mode..."
-	uv run streamlit run biblioteq/ui/web/app.py
+	PYTHONPATH=$(PWD) uv run streamlit run biblioteq/ui/web/app.py
 
 up: ## Start the application
 	@echo "Starting application..."
