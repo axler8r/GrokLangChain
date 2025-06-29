@@ -62,7 +62,7 @@ class Retriever:
         max_results: int = 10,
         min_similarity_threshold: float = 0.0,
     ) -> None:
-        """Initialize the Retriever with database connections from .env file.
+        """Initialize the Retriever with database connections.
 
         Args:
             env_file: Path to .env file (default: None, uses default .env)

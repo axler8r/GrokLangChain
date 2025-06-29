@@ -14,12 +14,6 @@ from biblioteq.semql import SemanticQueryLayer
 from qdrant_client import QdrantClient
 from pymongo import MongoClient
 
-"""
-BiblioTeq Web Frontend
-
-A Streamlit-based web interface for uploading PDF documents and querying
-book content using natural language.
-"""
 
 # Add the project root to Python path
 project_root: Path = Path(__file__).parent.parent.parent.parent

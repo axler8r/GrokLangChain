@@ -128,7 +128,6 @@ class TestRetrieverUnit:
             assert results[0].chunk_id == expected_md5_id
 
     def test_similarity_threshold_filtering(self, mock_retriever):
-        """Test that similarity threshold filtering works correctly."""
         # Create mock points with different scores
         high_score_point = Mock()
         high_score_point.id = "high-score-id"

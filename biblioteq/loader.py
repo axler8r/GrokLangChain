@@ -21,7 +21,7 @@ from qdrant_client.models import Distance, PointStruct, VectorParams
 
 
 class Loader:
-    """Processes PDF files for the BiblioQuiz application.
+    """Index PDF files.
 
     This class handles the complete pipeline of PDF processing:
     1. Reading PDF files from a directory
@@ -37,10 +37,9 @@ class Loader:
         chunk_size: int = 512,
         chunk_overlap: int = 64,
     ) -> None:
-        """Initialize the Loader with database connections from .env file.
+        """Initialize the Loader with database connections.
 
         Args:
-            env_file: Path to .env file (default: None, uses default .env)
             chunk_size: Size of text chunks in tokens (default: 512)
             chunk_overlap: Overlap between chunks in tokens (default: 64)
         """
@@ -84,7 +83,6 @@ class Loader:
         self._ensure_qdrant_collection()
 
     def _ensure_qdrant_collection(self) -> None:
-        """Ensure the Qdrant collection exists with proper configuration."""
         try:
             self.qdrant_client.get_collection(self.qdrant_collection)
         except Exception:
@@ -95,17 +93,6 @@ class Loader:
             )
 
     def _extract_text_from_pdf(self, pdf_path: Path) -> str:
-        """Extract text content from a PDF file.
-
-        Args:
-            pdf_path: Path to the PDF file
-
-        Returns:
-            Extracted text content as a string
-
-        Raises:
-            Exception: If PDF reading fails
-        """
         text: str = ""
         with open(pdf_path, "rb") as file:
             pdf_reader = pypdf.PdfReader(file)
@@ -114,14 +101,6 @@ class Loader:
         return text
 
     def _chunk_text(self, text: str) -> List[str]:
-        """Chunk text into overlapping segments based on token count.
-
-        Args:
-            text: Input text to be chunked
-
-        Returns:
-            List of text chunks with specified token size and overlap
-        """
         tokens: List[int] = self.tokenizer.encode(text)
         chunks = []
 
@@ -140,35 +119,13 @@ class Loader:
         return chunks
 
     def _generate_chunk_id(self, file_path: str, chunk_index: int) -> str:
-        """Generate a unique ID for a chunk.
-
-        Args:
-            file_path: Path of the source file
-            chunk_index: Index of the chunk within the file
-
-        Returns:
-            Unique chunk identifier
-        """
         content: str = f"{file_path}:{chunk_index}"
         return hashlib.md5(content.encode()).hexdigest()
 
     def _store_chunk_in_mongo(self, chunk_data: Dict[str, Any]) -> None:
-        """Store a text chunk in MongoDB.
-
-        Args:
-            chunk_data: Dictionary containing chunk information
-        """
         self.mongo_collection.insert_one(chunk_data)
 
     def _get_embedding(self, text: str) -> List[float]:
-        """Get OpenAI Ada 002 embedding for text.
-
-        Args:
-            text: Text to encode
-
-        Returns:
-            Embedding vector as list of floats
-        """
         response: CreateEmbeddingResponse = openai.embeddings.create(
             input=text, model="text-embedding-ada-002"
         )
@@ -177,13 +134,6 @@ class Loader:
     def _store_vector_in_qdrant(
         self, chunk_id: str, vector: List[float], metadata: Dict[str, Any]
     ) -> None:
-        """Store vector embedding in Qdrant.
-
-        Args:
-            chunk_id: Unique identifier for the chunk
-            vector: Embedding vector
-            metadata: Additional metadata for the vector
-        """
         point = PointStruct(id=chunk_id, vector=vector, payload=metadata)
         self.qdrant_client.upsert(collection_name=self.qdrant_collection, points=[point])
 
