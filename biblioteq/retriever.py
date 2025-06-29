@@ -104,8 +104,6 @@ class Retriever:
     def search(
         self,
         query: str,
-        max_results: Optional[int] = None,
-        min_similarity_threshold: Optional[float] = None,
     ) -> List[RetrievalResult]:
         """Search for relevant chunks based on a natural language query.
 
@@ -120,9 +118,6 @@ class Retriever:
         Raises:
             Exception: If search fails at any stage
         """
-        # Use provided parameters or fall back to instance defaults
-        max_results = max_results or self.max_results
-        min_similarity_threshold = min_similarity_threshold or self.min_similarity_threshold
 
         # Get embedding for the query
         try:
@@ -137,7 +132,7 @@ class Retriever:
             search_results: List[ScoredPoint] = self.qdrant_client.query_points(
                 collection_name=self.qdrant_collection,
                 query=query_vector,
-                limit=max_results,
+                limit=self.max_results,
             ).points
 
         except Exception as e:
@@ -151,12 +146,16 @@ class Retriever:
             similarity_score: float = scored_point.score
 
             # Apply threshold filtering here instead of at Qdrant level
-            if similarity_score < min_similarity_threshold:
+            if similarity_score < self.min_similarity_threshold:
                 continue
 
             # Fix: Qdrant formats MD5 hashes as UUIDs with hyphens, but MongoDB stores them without hyphens
             # Convert Qdrant UUID format back to MD5 hash format for MongoDB lookup
-            if isinstance(chunk_id, str) and len(chunk_id) == 36 and chunk_id.count("-") == 4:
+            if (
+                isinstance(chunk_id, str)
+                and len(chunk_id) == 36
+                and chunk_id.count("-") == 4
+            ):
                 mongo_chunk_id: str = chunk_id.replace("-", "")
             else:
                 mongo_chunk_id: str = str(chunk_id)

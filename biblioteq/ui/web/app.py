@@ -1,3 +1,10 @@
+"""
+BiblioTeq Web Frontend
+
+A Streamlit-based web interface for uploading PDF documents and querying
+book content using natural language.
+"""
+
 import asyncio
 import tempfile
 from asyncio import Task
@@ -14,9 +21,6 @@ from biblioteq.loader import Loader
 from biblioteq.retriever import Retriever
 from biblioteq.semql import SemanticQueryLayer
 
-# Add the project root to Python path
-project_root: Path = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
 configuration: Configuration = Configuration.get_instance()
 
 
@@ -46,7 +50,9 @@ def render_header() -> None:
 
 def render_load_section() -> None:
     """Render the document loading interface."""
-    st.markdown('<h2 class="section-header">Load Documents</h2>', unsafe_allow_html=True)
+    st.markdown(
+        '<h2 class="section-header">Load Documents</h2>', unsafe_allow_html=True
+    )
 
     with st.container():
         st.markdown('<div class="upload-section">', unsafe_allow_html=True)
@@ -77,7 +83,9 @@ def render_load_section() -> None:
                         status_text.text(f"Processing {uploaded_file.name}...")
 
                         # Save uploaded file to temporary location
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                        with tempfile.NamedTemporaryFile(
+                            delete=False, suffix=".pdf"
+                        ) as tmp_file:
                             tmp_file.write(uploaded_file.getvalue())
                             tmp_path = Path(tmp_file.name)
 
@@ -98,7 +106,9 @@ def render_load_section() -> None:
 
                     # Display results
                     status_text.text("Processing complete!")
-                    st.success(f"Successfully processed {len(uploaded_files)} document(s)")
+                    st.success(
+                        f"Successfully processed {len(uploaded_files)} document(s)"
+                    )
 
                     # Show processing details
                     st.markdown("### Processing Results")
@@ -164,7 +174,9 @@ def render_query_section() -> None:
             if result.sources:
                 with st.expander("View Sources"):
                     for i, source in enumerate(result.sources, 1):
-                        st.markdown(f"**Source {i}:** {source.get('source', 'Unknown')}")
+                        st.markdown(
+                            f"**Source {i}:** {source.get('source', 'Unknown')}"
+                        )
                         st.text(source.get("content", "No content")[:200] + "...")
                         st.markdown("---")
 
@@ -175,9 +187,7 @@ def render_query_section() -> None:
 def initialize_semql() -> None | SemanticQueryLayer:
     """Initialize and cache the SemanticQueryLayer instance."""
     try:
-
-        # Create retriever with environment-based connections
-        retriever = Retriever(env_file=str(env_file), max_results=5, min_similarity_threshold=0.1)
+        retriever = Retriever(max_results=5, min_similarity_threshold=0.1)
 
         retriever.qdrant_client = QdrantClient(
             host=configuration.qdrant_host, port=configuration.qdrant_port
@@ -224,7 +234,9 @@ def process_query_sync(query: str):
                     new_loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
                     asyncio.set_event_loop(new_loop)
                     try:
-                        result = new_loop.run_until_complete(process_query_async(semql, query))
+                        result = new_loop.run_until_complete(
+                            process_query_async(semql, query)
+                        )
                         result_container["result"] = result
                     finally:
                         # Clean up pending tasks before closing loop
@@ -265,7 +277,9 @@ def process_query_sync(query: str):
 
                 # Wait for cancelled tasks to finish
                 if pending:
-                    loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                    loop.run_until_complete(
+                        asyncio.gather(*pending, return_exceptions=True)
+                    )
 
                 loop.close()
 
@@ -276,7 +290,10 @@ def process_query_sync(query: str):
 def main() -> None:
     """Main application entry point."""
     st.set_page_config(
-        page_title="BiblioTeq", page_icon="📚", layout="wide", initial_sidebar_state="expanded"
+        page_title="BiblioTeq",
+        page_icon="📚",
+        layout="wide",
+        initial_sidebar_state="expanded",
     )
 
     apply_material_design_styles()

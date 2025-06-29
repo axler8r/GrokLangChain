@@ -17,6 +17,10 @@ from pymongo import MongoClient
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
+from biblioteq.config import Configuration
+
+configuration: Configuration = Configuration.get_instance()
+
 
 class Loader:
     """Index PDF files.
@@ -93,7 +97,7 @@ class Loader:
             if end == len(tokens):
                 break
 
-            start = end - self.chunk_overlap
+            start: int = end - self.chunk_overlap
 
         return chunks
 
@@ -114,7 +118,9 @@ class Loader:
         self, chunk_id: str, vector: List[float], metadata: Dict[str, Any]
     ) -> None:
         point = PointStruct(id=chunk_id, vector=vector, payload=metadata)
-        self.qdrant_client.upsert(collection_name=self.qdrant_collection, points=[point])
+        self.qdrant_client.upsert(
+            collection_name=self.qdrant_collection, points=[point]
+        )
 
     def process_pdf_file(self, pdf_path: Path) -> int:
         """Process a single PDF file through the complete pipeline.
@@ -181,7 +187,9 @@ class Loader:
             Exception: If directory access fails or processing errors occur
         """
         if not directory_path.exists() or not directory_path.is_dir():
-            raise ValueError(f"Directory {directory_path} does not exist or is not a directory")
+            raise ValueError(
+                f"Directory {directory_path} does not exist or is not a directory"
+            )
 
         results = {}
         pdf_files: List[Path] = list(directory_path.glob("*.pdf"))

@@ -18,12 +18,7 @@ from biblioteq.loader import Loader
 @pytest.fixture
 def test_pdf_path() -> Path:
     """Fixture providing the path to the test PDF file."""
-    return (
-        Path(__file__).parent.parent.parent
-        / "data"
-        / "book"
-        / "Deep Learning with Python, 2nd Edittion (Deep_Learning_with_Python_Second_Editio).pdf"
-    )
+    return Path(__file__).parent / "data" / "gnu-parallel-manual.pdf"
 
 
 @pytest.fixture
@@ -67,7 +62,9 @@ class TestLoader:
         assert test_pdf_path.exists(), f"Test PDF file not found at {test_pdf_path}"
         assert test_pdf_path.suffix == ".pdf", "Test file should be a PDF"
 
-    def test_extract_text_from_pdf(self, create_mock_loader: Loader, test_pdf_path: Path) -> None:
+    def test_extract_text_from_pdf(
+        self, create_mock_loader: Loader, test_pdf_path: Path
+    ) -> None:
         """Test PDF text extraction functionality."""
         text = create_mock_loader._extract_text_from_pdf(test_pdf_path)
 
@@ -127,7 +124,9 @@ class TestLoader:
             assert len(chunks) >= 2, "Should have multiple chunks for overlap testing"
 
     @patch.object(Loader, "_get_embedding")
-    def test_get_embedding(self, mock_get_embedding, create_mock_loader: Loader) -> None:
+    def test_get_embedding(
+        self, mock_get_embedding, create_mock_loader: Loader
+    ) -> None:
         """Test embedding generation functionality."""
         # Mock the _get_embedding method directly
         mock_get_embedding.return_value = [0.1, 0.2, 0.3] * 512  # 1536 dimensions
@@ -159,8 +158,12 @@ class TestLoader:
         assert chunk_id == chunk_id2, "Same inputs should produce identical chunk IDs"
 
         # Test that different inputs produce different IDs
-        chunk_id3: str = create_mock_loader._generate_chunk_id(file_path, chunk_index + 1)
-        assert chunk_id != chunk_id3, "Different inputs should produce different chunk IDs"
+        chunk_id3: str = create_mock_loader._generate_chunk_id(
+            file_path, chunk_index + 1
+        )
+        assert chunk_id != chunk_id3, (
+            "Different inputs should produce different chunk IDs"
+        )
 
     @patch.object(Loader, "_get_embedding")
     def test_end_to_end_chunking_and_encoding(
@@ -186,7 +189,9 @@ class TestLoader:
 
             # Get embedding
             embedding: List[float] = create_mock_loader._get_embedding(chunk)
-            assert len(embedding) == 1536, f"Embedding for chunk {i} should be 1536 dimensions"
+            assert len(embedding) == 1536, (
+                f"Embedding for chunk {i} should be 1536 dimensions"
+            )
 
             # Verify chunk data structure (what would be stored in MongoDB)
             chunk_data = {
@@ -201,13 +206,19 @@ class TestLoader:
             assert chunk_data["source_file"] == str(test_pdf_path), (
                 "Chunk data should have correct source file"
             )
-            assert chunk_data["chunk_index"] == i, "Chunk data should have correct index"
+            assert chunk_data["chunk_index"] == i, (
+                "Chunk data should have correct index"
+            )
             assert chunk_data["text"] == chunk, "Chunk data should have correct text"
-            assert chunk_data["token_count"] > 0, "Chunk data should have positive token count"
+            assert chunk_data["token_count"] > 0, (
+                "Chunk data should have positive token count"
+            )
 
     def test_tokenizer_initialization(self, create_mock_loader: Loader) -> None:
         """Test that the tokenizer is properly initialized."""
-        assert create_mock_loader.tokenizer is not None, "Tokenizer should be initialized"
+        assert create_mock_loader.tokenizer is not None, (
+            "Tokenizer should be initialized"
+        )
 
         # Test tokenizer functionality
         test_text = "Hello, world!"
@@ -222,12 +233,16 @@ class TestLoader:
     def test_chunk_configuration(self, create_mock_loader: Loader) -> None:
         """Test that chunk size and overlap are properly configured."""
         assert create_mock_loader.chunk_size == 512, "Default chunk size should be 512"
-        assert create_mock_loader.chunk_overlap == 64, "Default chunk overlap should be 64"
+        assert create_mock_loader.chunk_overlap == 64, (
+            "Default chunk overlap should be 64"
+        )
         assert create_mock_loader.chunk_overlap < create_mock_loader.chunk_size, (
             "Chunk overlap should be less than chunk size"
         )
         assert create_mock_loader.chunk_size == 512, "Default chunk size should be 512"
-        assert create_mock_loader.chunk_overlap == 64, "Default chunk overlap should be 64"
+        assert create_mock_loader.chunk_overlap == 64, (
+            "Default chunk overlap should be 64"
+        )
         assert create_mock_loader.chunk_overlap < create_mock_loader.chunk_size, (
             "Chunk overlap should be less than chunk size"
         )

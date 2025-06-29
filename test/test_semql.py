@@ -49,7 +49,9 @@ class TestSemanticQueryLayer:
     def retriever(self, test_env_file: str) -> Retriever:
         """Create a Retriever instance for testing with localhost connections."""
         # Create a retriever with overridden connection settings for external testing
-        retriever = Retriever(env_file=test_env_file, max_results=5, min_similarity_threshold=0.1)
+        retriever = Retriever(
+            env_file=test_env_file, max_results=5, min_similarity_threshold=0.1
+        )
 
         # Override the connection settings to use localhost instead of Docker hostnames
         retriever.qdrant_client = QdrantClient(host="localhost", port=6333)
@@ -80,7 +82,9 @@ class TestSemanticQueryLayer:
                     "No vector data found in production Qdrant. Start Docker Compose and load data first."
                 )
         except Exception:
-            pytest.skip("Qdrant collection not found. Start Docker Compose and load data first.")
+            pytest.skip(
+                "Qdrant collection not found. Start Docker Compose and load data first."
+            )
 
         mongo_client.close()
         print(
@@ -165,9 +169,13 @@ class TestSemanticQueryLayer:
 
                 # Should contain relevant content about GNU Parallel
                 content = chunk["content"].lower()
-                assert any(term in content for term in ["parallel", "gnu", "shell", "command"])
+                assert any(
+                    term in content for term in ["parallel", "gnu", "shell", "command"]
+                )
 
-                print(f"Retrieved {result.total_results} chunks for 'parallel shell commands'")
+                print(
+                    f"Retrieved {result.total_results} chunks for 'parallel shell commands'"
+                )
                 print(f"Sample content: {chunk['content'][:100]}...")
 
             return result
@@ -225,7 +233,9 @@ class TestSemanticQueryLayer:
         result = asyncio.run(run_test())
         assert result is not None
 
-    def test_query_input_validation(self, semql_with_mock_retriever: SemanticQueryLayer):
+    def test_query_input_validation(
+        self, semql_with_mock_retriever: SemanticQueryLayer
+    ):
         """Test query input validation."""
 
         async def run_test():
@@ -251,7 +261,10 @@ class TestSemanticQueryLayer:
     @patch("biblioteq.semql.ChatCompletionClient")
     @patch("biblioteq.semql.AssistantAgent")
     def test_query_response_structure(
-        self, mock_agent_class, mock_client_class, semql_with_mock_retriever: SemanticQueryLayer
+        self,
+        mock_agent_class,
+        mock_client_class,
+        semql_with_mock_retriever: SemanticQueryLayer,
     ):
         """Test that query method returns properly structured QueryResponse."""
         # Mock the model client
@@ -340,9 +353,13 @@ class TestSemanticQueryLayer:
             assert 0.0 <= result.similarity_score <= 1.0
 
             print(f"Direct retriever test: {len(results)} results")
-            print(f"Top result: {result.text[:50]}... (score: {result.similarity_score:.3f})")
+            print(
+                f"Top result: {result.text[:50]}... (score: {result.similarity_score:.3f})"
+            )
 
-    def test_retrieval_tool_data_formatting(self, semql_with_real_retriever: SemanticQueryLayer):
+    def test_retrieval_tool_data_formatting(
+        self, semql_with_real_retriever: SemanticQueryLayer
+    ):
         """Test that RetrieveDocumentsTool properly formats data from retriever."""
         tool = semql_with_real_retriever.retrieval_tool
 
@@ -381,7 +398,9 @@ class TestSemanticQueryLayer:
         result = asyncio.run(run_test())
         assert result is not None
 
-    def test_multiple_queries_different_topics(self, semql_with_real_retriever: SemanticQueryLayer):
+    def test_multiple_queries_different_topics(
+        self, semql_with_real_retriever: SemanticQueryLayer
+    ):
         """Test retrieval tool with multiple different queries."""
         tool = semql_with_real_retriever.retrieval_tool
 
