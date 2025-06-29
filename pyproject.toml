@@ -1,7 +1,7 @@
 [project]
 name = "biblioteq"
 version = "0.1.0"
-description = "Add your description here"
+description = "Index and search your PDF documents with a vector database and OpenAI's GPT-4."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
