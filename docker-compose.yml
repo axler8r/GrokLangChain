@@ -1,0 +1,33 @@
+services:
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  web:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/data
+    environment:
+      - PYTHONPATH=/app:/share
+      - QDRANT_HOST=qdrant
+      - MONGO_URI=mongodb://mongo:27017
+    restart: unless-stopped
+    depends_on:
+      - qdrant
+      - mongo
+
+volumes:
+  mongo_data:
+  qdrant_data:

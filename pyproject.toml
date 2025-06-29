@@ -1,0 +1,32 @@
+[project]
+name = "biblioteq"
+version = "0.1.0"
+description = "Index and search your PDF documents with a vector database and OpenAI's GPT-4."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "python-dotenv>=1.1.0",
+    "openai>=1.88.0",
+    "pymongo>=4.13.2",
+    "pypdf>=5.6.0",
+    "qdrant-client>=1.14.3",
+    "tiktoken>=0.9.0",
+    "streamlit>=1.46.0",
+    "autogen-agentchat>=0.6.1",
+    "autogen-ext[openai]>=0.6.1",
+]
+
+[dependency-groups]
+dev = [
+    "git-cliff>=2.9.1",
+    "pytest>=8.4.1",
+    "ruff>=0.12.0",
+]
+
+# set ruff formatting options
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[ruff.tool.lint]
+select = ["I"]

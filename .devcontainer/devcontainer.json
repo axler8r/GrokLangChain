@@ -1,0 +1,52 @@
+{
+    "name": "BiblioQuiz",
+    "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bullseye",
+    "runArgs": [
+        "--name", "biblioquiz",
+        "--hostname", "biblioquiz",
+        "--cpus", "2",
+        "--memory", "8g"
+    ],
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "moby": true,
+            "installDockerBuildx": true,
+            "installDockerComposeSwitch": true,
+            "version": "latest",
+            "dockerDashComposeVersion": "v2"
+        },
+        "ghcr.io/devcontainers-extra/features/apt-get-packages": {
+            "packages": [
+                "aspell",
+                "git-flow",
+                "tig"
+            ]
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "charliermarsh.ruff",
+                "github.copilot",
+                "ms-azuretools.vscode-docker",
+                "ms-python.python",
+                "ms-python.vscode-python-envs",
+                "ms-vscode.makefile-tools",
+                "redhat.vscode-yaml",
+                "tamasfe.even-better-toml"
+            ]
+        },
+        "settings": {
+            "python.defaultInterpreterPath": ".venv/bin/python",
+            "python.venvPath": "${workspaceFolder}"
+        }
+    },
+    "postCreateCommand": {
+        "installUv": "pipx install uv",
+        "installRuff": "pipx install ruff"
+    },
+    "postStartCommand": {
+        "removeExisitngVenv": "rm -rf .venv",
+        "setupVenv": "uv venv && uv sync --dev"
+    }
+}

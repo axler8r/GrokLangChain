@@ -1,0 +1,26 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "files.exclude": {
+            "**/.git": true,
+            "**/.pytest_cache": true,
+            "**/__pycache__": true,
+            "**/tags*": true,
+            ".venv/": true,
+            ".ruff_cache/": true,
+        },
+        "material-icon-theme.folders.associations": {
+            "biblioteq": "app",
+        },
+        "github.copilot.chat.codeGeneration.instructions": [
+            {"file": ".github/copilot-instructions.md", "language": "markdown"},
+            {"file": "documentation/architecture.md", "language": "markdown"}
+        ],
+        "makefile.configureOnOpen": false
+    }
+}
+
