@@ -4,8 +4,7 @@ This module provides functionality to search for relevant text chunks using
 vector similarity search in Qdrant and retrieve associated metadata from MongoDB.
 """
 
-import os
-from typing import List, Optional
+from typing import List
 
 import openai
 import tiktoken

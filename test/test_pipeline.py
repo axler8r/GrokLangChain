@@ -7,14 +7,16 @@ to ensure the loader can process PDFs and the retriever can find relevant conten
 import os
 import tempfile
 from pathlib import Path
-from typing import Generator
+from typing import Any, Generator, List
 
 import pytest
 from pymongo import MongoClient
 from qdrant_client import QdrantClient
+from qdrant_client.conversions.common_types import CollectionInfo, CollectionsResponse
+from qdrant_client.http.models.models import Record
 
 from biblioteq.loader import Loader
-from biblioteq.retriever import Retriever, RetrievalResult
+from biblioteq.retriever import RetrievalResult, Retriever
 
 
 class TestLoaderRetrieverIntegration:

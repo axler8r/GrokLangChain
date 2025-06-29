@@ -1,19 +1,18 @@
-import streamlit as st
-import tempfile
 import asyncio
-import sys
-import os
-from pathlib import Path
-from typing import Dict, Any
+import tempfile
 from asyncio import Task
+from pathlib import Path
+from typing import Any, Dict
 
+import streamlit as st
+from pymongo import MongoClient
+from qdrant_client import QdrantClient
 from streamlit.delta_generator import DeltaGenerator
+
+from biblioteq.config import Configuration
 from biblioteq.loader import Loader
 from biblioteq.retriever import Retriever
 from biblioteq.semql import SemanticQueryLayer
-from qdrant_client import QdrantClient
-from pymongo import MongoClient
-
 
 # Add the project root to Python path
 project_root: Path = Path(__file__).parent.parent.parent.parent

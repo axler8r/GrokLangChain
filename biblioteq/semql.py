@@ -6,9 +6,8 @@ responses based on user queries.
 """
 
 from asyncio import AbstractEventLoop
-from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
-import json
+from typing import Any, Dict, List
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base._chat_agent import Response

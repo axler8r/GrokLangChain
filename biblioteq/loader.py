@@ -6,9 +6,8 @@ embeddings, and storing the vector embeddings in Qdrant.
 """
 
 import hashlib
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import openai
 import pypdf
