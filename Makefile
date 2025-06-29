@@ -52,26 +52,25 @@ logs: ## Show logs of the application
 	docker compose logs --tail=100 --follow
 
 
-# code formatting and linting targets ------------------------------->8---------
-lint: ## Lint code
-	ruff check --fix --exit-zero --line-length 100 .
+# utility targets --------------------------------------------------->8---------
+check: ## Check and fix code style issues
+	ruff check --fix --exit-zero .
 
 format: ## Format code
-	ruff format --line-length 100 .
+	ruff format .
 
-# test
+# test targets ------------------------------------------------------>8---------
 test: ## Run unit tests (fast, no external dependencies)
 	@echo "Running unit tests..."
-	OPENAI_API_KEY=test-key uv run python -m pytest test/loader/ test/retriever/test_retriever_unit.py -v
+	OPENAI_API_KEY=test-key uv run python -m pytest test/test_loader.py test/test_retriever.py -v
 
-test-integration: ## Run integration tests with real databases and API
+test-integration: up ## Run integration tests with real databases and API
 	@echo "Running integration tests..."
-	@echo "⚠️  Make sure Docker containers are running: make up"
 	@if [ -z "$$OPENAI_API_KEY" ]; then \
-		echo "⚠️  Loading OPENAI_API_KEY from .env file..."; \
+		echo "Loading OPENAI_API_KEY from .env file..."; \
 		export $$(grep OPENAI_API_KEY biblioteq/.env 2>/dev/null | xargs); \
 	fi && \
-	uv run python -m pytest test/integration/ -v -s
+	uv run python -m pytest test/test_integration.py -v -s
 
 test-all: ## Run all tests (unit + integration)
 	@echo "Running all tests..."

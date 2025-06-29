@@ -6,9 +6,8 @@ responses based on user queries.
 """
 
 from asyncio import AbstractEventLoop
-from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
-import json
+from typing import Any, Dict, List
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base._chat_agent import Response
@@ -16,7 +15,10 @@ from autogen_agentchat.messages import TextMessage
 from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
 from autogen_core.tools import BaseTool
+from biblioteq.config import Configuration
 from pydantic import BaseModel, Field
+
+configuration: Configuration = Configuration.get_instance()
 
 
 @dataclass
@@ -76,7 +78,11 @@ class RetrieveDocumentsTool(BaseTool[RetrieveDocumentsInput, RetrieveDocumentsOu
         if not self.retriever_service:
             return RetrieveDocumentsOutput(
                 chunks=[
-                    {"content": "No retriever service available", "source": "system", "score": 0.0}
+                    {
+                        "content": "No retriever service available",
+                        "source": "system",
+                        "score": 0.0,
+                    }
                 ],
                 total_results=0,
             )
@@ -112,7 +118,11 @@ class RetrieveDocumentsTool(BaseTool[RetrieveDocumentsInput, RetrieveDocumentsOu
         except Exception as e:
             return RetrieveDocumentsOutput(
                 chunks=[
-                    {"content": f"Retrieval failed: {str(e)}", "source": "system", "score": 0.0}
+                    {
+                        "content": f"Retrieval failed: {str(e)}",
+                        "source": "system",
+                        "score": 0.0,
+                    }
                 ],
                 total_results=0,
             )
@@ -127,68 +137,41 @@ class SemanticQueryLayer:
     an agentic workflow.
     """
 
-    def __init__(
-        self, retriever_service: Any = None, config: Optional[Dict[str, Any]] = None
-    ) -> None:
+    def __init__(self, retriever_service: Any = None) -> None:
         """Initialize the Semantic Query Layer.
 
         Args:
             retriever_service: The retriever service for database queries
-            config: Configuration dictionary for the query layer
         """
         self.retriever_service = retriever_service
-        self.config: Dict[str, Any] = config or {}
         self._setup_agents()
 
     def _setup_agents(self) -> None:
         """Set up the autogen agents for the workflow."""
-        # Get model client configuration
-        raw_model_config = self.config.get(
-            "model_config",
-            {
-                "model": "gpt-4",
-                "api_key": "your-api-key",
-            },
-        )
 
         # Convert to proper Autogen component format
         self.model_config = {
             "provider": "OpenAIChatCompletionClient",
             "config": {
-                "model": raw_model_config.get("model", "gpt-4"),
-                "api_key": raw_model_config.get("api_key"),
+                "model": configuration.openai_model,
+                "api_key": configuration.openai_api_key,
             },
         }
 
         # Create the retrieval tool
         self.retrieval_tool = RetrieveDocumentsTool(self.retriever_service)
 
-    def _extract_sources_from_messages(self, messages: List[Any]) -> List[Dict[str, Any]]:
-        """Extract source information from tool call results.
-
-        Args:
-            messages: List of messages from the conversation
-
-        Returns:
-            List of source dictionaries
-        """
+    def _extract_sources(self, retrieval_result):
         sources = []
-        for message in messages:
-            # Handle different message types that might contain tool results
-            if hasattr(message, "content") and isinstance(message.content, str):
-                try:
-                    result_data = json.loads(message.content)
-                    if isinstance(result_data, dict) and "chunks" in result_data:
-                        for chunk in result_data["chunks"]:
-                            source = {
-                                "source": chunk.get("source", "Unknown"),
-                                "content": chunk.get("content", "")[:200],  # Truncate for display
-                                "score": chunk.get("score", 0.0),
-                                "chunk_index": chunk.get("chunk_index", 0),
-                            }
-                            sources.append(source)
-                except (json.JSONDecodeError, TypeError):
-                    continue
+        if retrieval_result.chunks:
+            for chunk in retrieval_result.chunks:
+                source: Dict[str, Any] = {
+                    "source": chunk.get("source", "Unknown"),
+                    "content": chunk.get("content", "")[:200],  # Truncate for display
+                    "score": chunk.get("score", 0.0),
+                    "chunk_index": chunk.get("chunk_index", 0),
+                }
+                sources.append(source)
         return sources
 
     def _calculate_confidence(self, sources: List[Dict[str, Any]]) -> float:
@@ -211,9 +194,7 @@ class SemanticQueryLayer:
 
         return min(max_score + source_bonus, 1.0)
 
-    async def query(
-        self, user_query: str, context: Optional[Dict[str, Any]] = None
-    ) -> QueryResponse:
+    async def query(self, user_query: str) -> QueryResponse:
         """Process a natural language query about book content.
 
         Args:
@@ -228,35 +209,17 @@ class SemanticQueryLayer:
         """
         if not user_query.strip():
             raise ValueError("Query cannot be empty")
-
         try:
-            # For now, let's simplify by directly using the retrieval tool and then generating a response
-            # This avoids the complex agent workflow issues
-
-            # First, retrieve relevant documents
             retrieval_result: RetrieveDocumentsOutput = await self.retrieval_tool.run(
                 RetrieveDocumentsInput(query=user_query), CancellationToken()
             )
 
-            # Extract sources from retrieval result
-            sources = []
-            if retrieval_result.chunks:
-                for chunk in retrieval_result.chunks:
-                    source: Dict[str, Any] = {
-                        "source": chunk.get("source", "Unknown"),
-                        "content": chunk.get("content", "")[:200],  # Truncate for display
-                        "score": chunk.get("score", 0.0),
-                        "chunk_index": chunk.get("chunk_index", 0),
-                    }
-                    sources.append(source)
+            sources = self._extract_sources(retrieval_result)
 
-            # Calculate confidence based on retrieval quality
-            confidence = self._calculate_confidence(sources)
+            confidence: float = self._calculate_confidence(sources)
 
-            # For now, create a simple summarized response based on the retrieved content
             if sources:
-                # Create context from retrieved chunks
-                context_text = "\n\n".join(
+                context = "\n\n".join(
                     [chunk.get("content", "") for chunk in retrieval_result.chunks]
                 )
 
@@ -273,21 +236,28 @@ class SemanticQueryLayer:
                     }
 
                 try:
-                    model_client = ChatCompletionClient.load_component(model_config)
+                    model_client: ChatCompletionClient = (
+                        ChatCompletionClient.load_component(model_config)
+                    )
 
                     # Create assistant agent for summarization
                     assistant_agent = AssistantAgent(
                         name="research_assistant",
                         model_client=model_client,
                         tools=[],  # No tools needed for simple summarization
-                        system_message=f"""You are a knowledgeable research assistant. Based on the following context from technical books and documentation, provide a clear, comprehensive answer to the user's question.
+                        system_message=f"""
+You are a knowledgeable research assistant. Based on the following context from
+technical books and documentation, provide a clear, comprehensive answer to the
+user's question.
 
 Context:
-{context_text[:4000]}  # Limit context to avoid token limits
+{context[:4000]}  # Limit context to avoid token limits
 
 Question: {user_query}
 
-Provide a direct, helpful answer that synthesizes the information from the context. If the context doesn't contain sufficient information to fully answer the question, clearly state this limitation.""",
+Provide a direct, helpful answer that synthesizes the information from the
+context. If the context doesn't contain sufficient information to fully answer
+the question, clearly state this limitation.""",
                     )
 
                     # Get response from assistant
@@ -296,16 +266,18 @@ Provide a direct, helpful answer that synthesizes the information from the conte
                         messages=[user_message], cancellation_token=CancellationToken()
                     )
 
-                    final_answer = (
-                        "I apologize, but I couldn't generate a proper response to your query."
-                    )
-                    if response.chat_message and isinstance(response.chat_message, TextMessage):
+                    final_answer = "I apologize, but I couldn't generate a proper response to your query."
+                    if response.chat_message and isinstance(
+                        response.chat_message, TextMessage
+                    ):
                         final_answer: str = response.chat_message.content
 
                 except Exception as e:
                     # Fallback to a simple context-based response if agent fails
-                    final_answer = f"Based on the retrieved information: {context_text[:500]}..."
-                    if len(context_text) > 500:
+                    final_answer = (
+                        f"Based on the retrieved information: {context[:500]}..."
+                    )
+                    if len(context) > 500:
                         final_answer += f"\n\nI found {len(sources)} relevant sections from your books, but encountered an issue generating a detailed summary: {str(e)}"
             else:
                 final_answer = "I couldn't find any relevant information in your book collection to answer this query. Please try rephrasing your question or check if the relevant documents have been uploaded."

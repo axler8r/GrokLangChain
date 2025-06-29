@@ -4,16 +4,17 @@ This module provides functionality to search for relevant text chunks using
 vector similarity search in Qdrant and retrieve associated metadata from MongoDB.
 """
 
-import os
-from typing import List, Optional
+from typing import List
 
 import openai
 import tiktoken
-from dotenv import load_dotenv
+from biblioteq.config import Configuration
 from openai.types.create_embedding_response import CreateEmbeddingResponse
 from pymongo import MongoClient
 from qdrant_client import QdrantClient
 from qdrant_client.models import ScoredPoint
+
+configuration: Configuration = Configuration.get_instance()
 
 
 class RetrievalResult:
@@ -58,53 +59,33 @@ class Retriever:
 
     def __init__(
         self,
-        env_file: Optional[str] = None,
         max_results: int = 10,
         min_similarity_threshold: float = 0.0,
     ) -> None:
-        """Initialize the Retriever with database connections from .env file.
+        """Initialize the Retriever with database connections.
 
         Args:
-            env_file: Path to .env file (default: None, uses default .env)
             max_results: Maximum number of results to return (default: 10)
             min_similarity_threshold: Minimum similarity score threshold (default: 0.0)
         """
-        # Load environment variables
-        if env_file:
-            load_dotenv(env_file)
-        else:
-            load_dotenv()
 
-        # Get configuration from environment variables
-        mongo_uri: str = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-        mongo_db: str = os.getenv("MONGO_DB", "biblioteq")
-        mongo_collection: str = os.getenv("MONGO_COLLECTION", "chunks")
-        qdrant_host: str = os.getenv("QDRANT_HOST", "localhost")
-        qdrant_port = int(os.getenv("QDRANT_PORT", "6333"))
-        qdrant_collection: str = os.getenv("QDRANT_COLLECTION", "embeddings")
-        openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
-
-        if not openai_api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is required")
-
-        # Store configuration parameters
         self.max_results: int = max_results
         self.min_similarity_threshold: float = min_similarity_threshold
 
-        # Initialize MongoDB connection
-        self.mongo_client = MongoClient(mongo_uri)
-        self.mongo_db = self.mongo_client[mongo_db]
-        self.mongo_collection = self.mongo_db[mongo_collection]
+        self.mongo_client = MongoClient(configuration.mongo_uri)
+        self.mongo_db = self.mongo_client[configuration.mongo_db]
+        self.mongo_collection = self.mongo_db[configuration.mongo_collection]
 
-        # Initialize Qdrant connection
-        self.qdrant_client = QdrantClient(host=qdrant_host, port=qdrant_port)
-        self.qdrant_collection: str = qdrant_collection
+        self.qdrant_client = QdrantClient(
+            host=configuration.qdrant_host, port=configuration.qdrant_port
+        )
+        self.qdrant_collection: str = configuration.qdrant_collection
 
-        # Initialize OpenAI client
-        openai.api_key = openai_api_key
+        openai.api_key = configuration.openai_api_key
 
-        # Initialize tokenizer for Ada 002 (same as loader for consistency)
-        self.tokenizer: tiktoken.Encoding = tiktoken.encoding_for_model("text-embedding-ada-002")
+        self.tokenizer: tiktoken.Encoding = tiktoken.encoding_for_model(
+            "text-embedding-ada-002"
+        )
 
     def _get_query_embedding(self, query: str) -> List[float]:
         """Get OpenAI Ada 002 embedding for the query.
@@ -123,8 +104,6 @@ class Retriever:
     def search(
         self,
         query: str,
-        max_results: Optional[int] = None,
-        min_similarity_threshold: Optional[float] = None,
     ) -> List[RetrievalResult]:
         """Search for relevant chunks based on a natural language query.
 
@@ -139,9 +118,6 @@ class Retriever:
         Raises:
             Exception: If search fails at any stage
         """
-        # Use provided parameters or fall back to instance defaults
-        max_results = max_results or self.max_results
-        min_similarity_threshold = min_similarity_threshold or self.min_similarity_threshold
 
         # Get embedding for the query
         try:
@@ -156,7 +132,7 @@ class Retriever:
             search_results: List[ScoredPoint] = self.qdrant_client.query_points(
                 collection_name=self.qdrant_collection,
                 query=query_vector,
-                limit=max_results,
+                limit=self.max_results,
             ).points
 
         except Exception as e:
@@ -170,12 +146,16 @@ class Retriever:
             similarity_score: float = scored_point.score
 
             # Apply threshold filtering here instead of at Qdrant level
-            if similarity_score < min_similarity_threshold:
+            if similarity_score < self.min_similarity_threshold:
                 continue
 
             # Fix: Qdrant formats MD5 hashes as UUIDs with hyphens, but MongoDB stores them without hyphens
             # Convert Qdrant UUID format back to MD5 hash format for MongoDB lookup
-            if isinstance(chunk_id, str) and len(chunk_id) == 36 and chunk_id.count("-") == 4:
+            if (
+                isinstance(chunk_id, str)
+                and len(chunk_id) == 36
+                and chunk_id.count("-") == 4
+            ):
                 mongo_chunk_id: str = chunk_id.replace("-", "")
             else:
                 mongo_chunk_id: str = str(chunk_id)

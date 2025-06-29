@@ -6,22 +6,24 @@ embeddings, and storing the vector embeddings in Qdrant.
 """
 
 import hashlib
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import openai
 import pypdf
 import tiktoken
-from dotenv import load_dotenv
 from openai.types.create_embedding_response import CreateEmbeddingResponse
 from pymongo import MongoClient
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
+from biblioteq.config import Configuration
+
+configuration: Configuration = Configuration.get_instance()
+
 
 class Loader:
-    """Processes PDF files for the BiblioQuiz application.
+    """Index PDF files.
 
     This class handles the complete pipeline of PDF processing:
     1. Reading PDF files from a directory
@@ -33,58 +35,37 @@ class Loader:
 
     def __init__(
         self,
-        env_file: Optional[str] = None,
         chunk_size: int = 512,
         chunk_overlap: int = 64,
     ) -> None:
-        """Initialize the Loader with database connections from .env file.
+        """Initialize the Loader with database connections.
 
         Args:
-            env_file: Path to .env file (default: None, uses default .env)
             chunk_size: Size of text chunks in tokens (default: 512)
             chunk_overlap: Overlap between chunks in tokens (default: 64)
         """
-        # Load environment variables
-        if env_file:
-            load_dotenv(env_file)
-        else:
-            load_dotenv()
-
-        # Get configuration from environment variables
-        mongo_uri: str = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-        mongo_db: str = os.getenv("MONGO_DB", "biblioquiz")
-        mongo_collection: str = os.getenv("MONGO_COLLECTION", "chunks")
-        qdrant_host: str = os.getenv("QDRANT_HOST", "localhost")
-        qdrant_port = int(os.getenv("QDRANT_PORT", "6333"))
-        qdrant_collection: str = os.getenv("QDRANT_COLLECTION", "embeddings")
-        openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
-
-        if not openai_api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is required")
 
         self.chunk_size: int = chunk_size
         self.chunk_overlap: int = chunk_overlap
 
-        # Initialize MongoDB connection
-        self.mongo_client = MongoClient(mongo_uri)
-        self.mongo_db = self.mongo_client[mongo_db]
-        self.mongo_collection = self.mongo_db[mongo_collection]
+        self.mongo_client = MongoClient(configuration.mongo_uri)
+        self.mongo_db = self.mongo_client[configuration.mongo_db]
+        self.mongo_collection = self.mongo_db[configuration.mongo_collection]
 
-        # Initialize Qdrant connection
-        self.qdrant_client = QdrantClient(host=qdrant_host, port=qdrant_port)
-        self.qdrant_collection: str = qdrant_collection
+        self.qdrant_client = QdrantClient(
+            host=configuration.qdrant_host, port=configuration.qdrant_port
+        )
+        self.qdrant_collection: str = configuration.qdrant_collection
 
-        # Initialize OpenAI client
-        openai.api_key = openai_api_key
+        openai.api_key = configuration.openai_api_key
 
-        # Initialize tokenizer for Ada 002
-        self.tokenizer: tiktoken.Encoding = tiktoken.encoding_for_model("text-embedding-ada-002")
+        self.tokenizer: tiktoken.Encoding = tiktoken.encoding_for_model(
+            configuration.openai_encoding_model
+        )
 
-        # Ensure Qdrant collection exists
         self._ensure_qdrant_collection()
 
     def _ensure_qdrant_collection(self) -> None:
-        """Ensure the Qdrant collection exists with proper configuration."""
         try:
             self.qdrant_client.get_collection(self.qdrant_collection)
         except Exception:
@@ -95,17 +76,6 @@ class Loader:
             )
 
     def _extract_text_from_pdf(self, pdf_path: Path) -> str:
-        """Extract text content from a PDF file.
-
-        Args:
-            pdf_path: Path to the PDF file
-
-        Returns:
-            Extracted text content as a string
-
-        Raises:
-            Exception: If PDF reading fails
-        """
         text: str = ""
         with open(pdf_path, "rb") as file:
             pdf_reader = pypdf.PdfReader(file)
@@ -114,14 +84,6 @@ class Loader:
         return text
 
     def _chunk_text(self, text: str) -> List[str]:
-        """Chunk text into overlapping segments based on token count.
-
-        Args:
-            text: Input text to be chunked
-
-        Returns:
-            List of text chunks with specified token size and overlap
-        """
         tokens: List[int] = self.tokenizer.encode(text)
         chunks = []
 
@@ -135,57 +97,30 @@ class Loader:
             if end == len(tokens):
                 break
 
-            start = end - self.chunk_overlap
+            start: int = end - self.chunk_overlap
 
         return chunks
 
     def _generate_chunk_id(self, file_path: str, chunk_index: int) -> str:
-        """Generate a unique ID for a chunk.
-
-        Args:
-            file_path: Path of the source file
-            chunk_index: Index of the chunk within the file
-
-        Returns:
-            Unique chunk identifier
-        """
         content: str = f"{file_path}:{chunk_index}"
         return hashlib.md5(content.encode()).hexdigest()
 
     def _store_chunk_in_mongo(self, chunk_data: Dict[str, Any]) -> None:
-        """Store a text chunk in MongoDB.
-
-        Args:
-            chunk_data: Dictionary containing chunk information
-        """
         self.mongo_collection.insert_one(chunk_data)
 
     def _get_embedding(self, text: str) -> List[float]:
-        """Get OpenAI Ada 002 embedding for text.
-
-        Args:
-            text: Text to encode
-
-        Returns:
-            Embedding vector as list of floats
-        """
         response: CreateEmbeddingResponse = openai.embeddings.create(
-            input=text, model="text-embedding-ada-002"
+            input=text, model=configuration.openai_encoding_model
         )
         return response.data[0].embedding
 
     def _store_vector_in_qdrant(
         self, chunk_id: str, vector: List[float], metadata: Dict[str, Any]
     ) -> None:
-        """Store vector embedding in Qdrant.
-
-        Args:
-            chunk_id: Unique identifier for the chunk
-            vector: Embedding vector
-            metadata: Additional metadata for the vector
-        """
         point = PointStruct(id=chunk_id, vector=vector, payload=metadata)
-        self.qdrant_client.upsert(collection_name=self.qdrant_collection, points=[point])
+        self.qdrant_client.upsert(
+            collection_name=self.qdrant_collection, points=[point]
+        )
 
     def process_pdf_file(self, pdf_path: Path) -> int:
         """Process a single PDF file through the complete pipeline.
@@ -252,7 +187,9 @@ class Loader:
             Exception: If directory access fails or processing errors occur
         """
         if not directory_path.exists() or not directory_path.is_dir():
-            raise ValueError(f"Directory {directory_path} does not exist or is not a directory")
+            raise ValueError(
+                f"Directory {directory_path} does not exist or is not a directory"
+            )
 
         results = {}
         pdf_files: List[Path] = list(directory_path.glob("*.pdf"))

@@ -1,19 +1,3 @@
-import streamlit as st
-import tempfile
-import asyncio
-import sys
-import os
-from pathlib import Path
-from typing import Dict, Any
-from asyncio import Task
-
-from streamlit.delta_generator import DeltaGenerator
-from biblioteq.loader import Loader
-from biblioteq.retriever import Retriever
-from biblioteq.semql import SemanticQueryLayer
-from qdrant_client import QdrantClient
-from pymongo import MongoClient
-
 """
 BiblioTeq Web Frontend
 
@@ -21,9 +5,23 @@ A Streamlit-based web interface for uploading PDF documents and querying
 book content using natural language.
 """
 
-# Add the project root to Python path
-project_root: Path = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
+import asyncio
+import tempfile
+from asyncio import Task
+from pathlib import Path
+from typing import Any, Dict
+
+import streamlit as st
+from pymongo import MongoClient
+from qdrant_client import QdrantClient
+from streamlit.delta_generator import DeltaGenerator
+
+from biblioteq.config import Configuration
+from biblioteq.loader import Loader
+from biblioteq.retriever import Retriever
+from biblioteq.semql import SemanticQueryLayer
+
+configuration: Configuration = Configuration.get_instance()
 
 
 def apply_material_design_styles() -> None:
@@ -52,7 +50,9 @@ def render_header() -> None:
 
 def render_load_section() -> None:
     """Render the document loading interface."""
-    st.markdown('<h2 class="section-header">Load Documents</h2>', unsafe_allow_html=True)
+    st.markdown(
+        '<h2 class="section-header">Load Documents</h2>', unsafe_allow_html=True
+    )
 
     with st.container():
         st.markdown('<div class="upload-section">', unsafe_allow_html=True)
@@ -83,7 +83,9 @@ def render_load_section() -> None:
                         status_text.text(f"Processing {uploaded_file.name}...")
 
                         # Save uploaded file to temporary location
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                        with tempfile.NamedTemporaryFile(
+                            delete=False, suffix=".pdf"
+                        ) as tmp_file:
                             tmp_file.write(uploaded_file.getvalue())
                             tmp_path = Path(tmp_file.name)
 
@@ -104,7 +106,9 @@ def render_load_section() -> None:
 
                     # Display results
                     status_text.text("Processing complete!")
-                    st.success(f"Successfully processed {len(uploaded_files)} document(s)")
+                    st.success(
+                        f"Successfully processed {len(uploaded_files)} document(s)"
+                    )
 
                     # Show processing details
                     st.markdown("### Processing Results")
@@ -170,7 +174,9 @@ def render_query_section() -> None:
             if result.sources:
                 with st.expander("View Sources"):
                     for i, source in enumerate(result.sources, 1):
-                        st.markdown(f"**Source {i}:** {source.get('source', 'Unknown')}")
+                        st.markdown(
+                            f"**Source {i}:** {source.get('source', 'Unknown')}"
+                        )
                         st.text(source.get("content", "No content")[:200] + "...")
                         st.markdown("---")
 
@@ -181,50 +187,18 @@ def render_query_section() -> None:
 def initialize_semql() -> None | SemanticQueryLayer:
     """Initialize and cache the SemanticQueryLayer instance."""
     try:
-        # Get the .env file path
-        env_file: Path = Path(__file__).parent.parent.parent / ".env"
+        retriever = Retriever(max_results=5, min_similarity_threshold=0.1)
 
-        # Create retriever with environment-based connections
-        retriever = Retriever(env_file=str(env_file), max_results=5, min_similarity_threshold=0.1)
-
-        # Use environment variables for connections (Docker-aware)
-        qdrant_host: str = os.getenv("QDRANT_HOST", "localhost")
-        qdrant_port = int(os.getenv("QDRANT_PORT", "6333"))
-        mongo_uri: str = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-        mongo_db: str = os.getenv("MONGO_DB", "bibioteq")
-        mongo_collection: str = os.getenv("MONGO_COLLECTION", "chunks")
-
-        # Override connections with environment-aware settings
-        retriever.qdrant_client = QdrantClient(host=qdrant_host, port=qdrant_port)
-        retriever.mongo_client = MongoClient(mongo_uri)
-        retriever.mongo_collection = retriever.mongo_client[mongo_db][mongo_collection]
-
-        # Read OpenAI API key from .env file
-        api_key = ""
-        if env_file.exists():
-            with open(env_file, "r") as f:
-                for line in f:
-                    if line.startswith("OPENAI_API_KEY="):
-                        api_key: str = line.split("=", 1)[1].strip()
-                        break
-
-        if not api_key:
-            st.error("OPENAI_API_KEY not found in .env file")
-            return None
-
-        # Configure the model with proper Autogen 0.6.x format
-        config = {
-            "model_config": {
-                "provider": "openai",
-                "config": {
-                    "model": "gpt-4",
-                    "api_key": api_key,
-                },
-            }
-        }
+        retriever.qdrant_client = QdrantClient(
+            host=configuration.qdrant_host, port=configuration.qdrant_port
+        )
+        retriever.mongo_client = MongoClient(configuration.mongo_uri)
+        retriever.mongo_collection = retriever.mongo_client[configuration.mongo_db][
+            configuration.mongo_collection
+        ]
 
         # Create and return SemanticQueryLayer
-        return SemanticQueryLayer(retriever_service=retriever, config=config)
+        return SemanticQueryLayer(retriever_service=retriever)
 
     except Exception as e:
         st.error(f"Failed to initialize query system: {str(e)}")
@@ -260,7 +234,9 @@ def process_query_sync(query: str):
                     new_loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
                     asyncio.set_event_loop(new_loop)
                     try:
-                        result = new_loop.run_until_complete(process_query_async(semql, query))
+                        result = new_loop.run_until_complete(
+                            process_query_async(semql, query)
+                        )
                         result_container["result"] = result
                     finally:
                         # Clean up pending tasks before closing loop
@@ -301,7 +277,9 @@ def process_query_sync(query: str):
 
                 # Wait for cancelled tasks to finish
                 if pending:
-                    loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                    loop.run_until_complete(
+                        asyncio.gather(*pending, return_exceptions=True)
+                    )
 
                 loop.close()
 
@@ -312,7 +290,10 @@ def process_query_sync(query: str):
 def main() -> None:
     """Main application entry point."""
     st.set_page_config(
-        page_title="BiblioTeq", page_icon="📚", layout="wide", initial_sidebar_state="expanded"
+        page_title="BiblioTeq",
+        page_icon="📚",
+        layout="wide",
+        initial_sidebar_state="expanded",
     )
 
     apply_material_design_styles()
