@@ -18,6 +18,15 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "git-cliff>=2.9.1",
     "pytest>=8.4.1",
     "ruff>=0.12.0",
 ]
+
+# set ruff formatting options
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[ruff.tool.lint]
+select = ["I"]
