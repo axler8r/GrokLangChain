@@ -32,7 +32,6 @@ def create_mock_loader() -> Loader:
     with (
         patch("biblioteq.loader.MongoClient"),
         patch("biblioteq.loader.QdrantClient"),
-        patch("biblioteq.loader.load_dotenv"),
         patch("biblioteq.loader.openai") as mock_openai,
         patch.dict(
             os.environ,

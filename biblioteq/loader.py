@@ -12,7 +12,6 @@ from typing import Any, Dict, List
 import openai
 import pypdf
 import tiktoken
-from dotenv import load_dotenv
 from openai.types.create_embedding_response import CreateEmbeddingResponse
 from pymongo import MongoClient
 from qdrant_client import QdrantClient
@@ -32,7 +31,6 @@ class Loader:
 
     def __init__(
         self,
-        env_file: Optional[str] = None,
         chunk_size: int = 512,
         chunk_overlap: int = 64,
     ) -> None:
@@ -42,43 +40,25 @@ class Loader:
             chunk_size: Size of text chunks in tokens (default: 512)
             chunk_overlap: Overlap between chunks in tokens (default: 64)
         """
-        # Load environment variables
-        if env_file:
-            load_dotenv(env_file)
-        else:
-            load_dotenv()
-
-        # Get configuration from environment variables
-        mongo_uri: str = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-        mongo_db: str = os.getenv("MONGO_DB", "biblioquiz")
-        mongo_collection: str = os.getenv("MONGO_COLLECTION", "chunks")
-        qdrant_host: str = os.getenv("QDRANT_HOST", "localhost")
-        qdrant_port = int(os.getenv("QDRANT_PORT", "6333"))
-        qdrant_collection: str = os.getenv("QDRANT_COLLECTION", "embeddings")
-        openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
-
-        if not openai_api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is required")
 
         self.chunk_size: int = chunk_size
         self.chunk_overlap: int = chunk_overlap
 
-        # Initialize MongoDB connection
-        self.mongo_client = MongoClient(mongo_uri)
-        self.mongo_db = self.mongo_client[mongo_db]
-        self.mongo_collection = self.mongo_db[mongo_collection]
+        self.mongo_client = MongoClient(configuration.mongo_uri)
+        self.mongo_db = self.mongo_client[configuration.mongo_db]
+        self.mongo_collection = self.mongo_db[configuration.mongo_collection]
 
-        # Initialize Qdrant connection
-        self.qdrant_client = QdrantClient(host=qdrant_host, port=qdrant_port)
-        self.qdrant_collection: str = qdrant_collection
+        self.qdrant_client = QdrantClient(
+            host=configuration.qdrant_host, port=configuration.qdrant_port
+        )
+        self.qdrant_collection: str = configuration.qdrant_collection
 
-        # Initialize OpenAI client
-        openai.api_key = openai_api_key
+        openai.api_key = configuration.openai_api_key
 
-        # Initialize tokenizer for Ada 002
-        self.tokenizer: tiktoken.Encoding = tiktoken.encoding_for_model("text-embedding-ada-002")
+        self.tokenizer: tiktoken.Encoding = tiktoken.encoding_for_model(
+            configuration.openai_encoding_model
+        )
 
-        # Ensure Qdrant collection exists
         self._ensure_qdrant_collection()
 
     def _ensure_qdrant_collection(self) -> None:
@@ -126,7 +106,7 @@ class Loader:
 
     def _get_embedding(self, text: str) -> List[float]:
         response: CreateEmbeddingResponse = openai.embeddings.create(
-            input=text, model="text-embedding-ada-002"
+            input=text, model=configuration.openai_encoding_model
         )
         return response.data[0].embedding
 

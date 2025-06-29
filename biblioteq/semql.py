@@ -15,7 +15,10 @@ from autogen_agentchat.messages import TextMessage
 from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
 from autogen_core.tools import BaseTool
+from biblioteq.config import Configuration
 from pydantic import BaseModel, Field
+
+configuration: Configuration = Configuration.get_instance()
 
 
 @dataclass
@@ -126,36 +129,24 @@ class SemanticQueryLayer:
     an agentic workflow.
     """
 
-    def __init__(
-        self, retriever_service: Any = None, config: Optional[Dict[str, Any]] = None
-    ) -> None:
+    def __init__(self, retriever_service: Any = None) -> None:
         """Initialize the Semantic Query Layer.
 
         Args:
             retriever_service: The retriever service for database queries
-            config: Configuration dictionary for the query layer
         """
         self.retriever_service = retriever_service
-        self.config: Dict[str, Any] = config or {}
         self._setup_agents()
 
     def _setup_agents(self) -> None:
         """Set up the autogen agents for the workflow."""
-        # Get model client configuration
-        raw_model_config = self.config.get(
-            "model_config",
-            {
-                "model": "gpt-4",
-                "api_key": "your-api-key",
-            },
-        )
 
         # Convert to proper Autogen component format
         self.model_config = {
             "provider": "OpenAIChatCompletionClient",
             "config": {
-                "model": raw_model_config.get("model", "gpt-4"),
-                "api_key": raw_model_config.get("api_key"),
+                "model": configuration.openai_model,
+                "api_key": configuration.openai_api_key,
             },
         }
 
@@ -282,7 +273,7 @@ class SemanticQueryLayer:
                         system_message=f"""You are a knowledgeable research assistant. Based on the following context from technical books and documentation, provide a clear, comprehensive answer to the user's question.
 
 Context:
-{context_text[:4000]}  # Limit context to avoid token limits
+{context[:4000]}  # Limit context to avoid token limits
 
 Question: {user_query}
 

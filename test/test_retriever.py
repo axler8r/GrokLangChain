@@ -19,7 +19,6 @@ class TestRetrieverUnit:
             patch("biblioteq.retriever.MongoClient"),
             patch("biblioteq.retriever.QdrantClient"),
             patch("biblioteq.retriever.openai"),
-            patch("biblioteq.retriever.load_dotenv"),
             patch.dict(
                 "os.environ",
                 {
