@@ -49,7 +49,7 @@ def create_mock_loader() -> Loader:
         # Mock the database-related methods to avoid actual connections
         loader._ensure_qdrant_collection = Mock()
         loader._store_chunk_in_mongo = Mock()
-        loader._store_vector_in_qdrant = Mock()
+        loader._store_embedding_in_qdrant = Mock()
 
         return loader
 
