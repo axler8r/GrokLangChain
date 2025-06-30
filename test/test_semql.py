@@ -328,7 +328,7 @@ class TestSemanticQueryLayer:
     def test_retriever_service_integration(self, retriever: Retriever):
         """Test that retriever service returns expected data structure."""
         # Test direct retriever functionality
-        results = retriever.search("GNU parallel", max_results=3)
+        results = retriever.search("GNU parallel")
 
         assert isinstance(results, list)
         assert len(results) >= 0

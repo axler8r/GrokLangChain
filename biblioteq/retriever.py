@@ -60,13 +60,13 @@ class Retriever:
     def __init__(
         self,
         max_results: int = 10,
-        min_similarity_threshold: float = 0.0,
+        min_similarity_threshold: float = 0.6,
     ) -> None:
         """Initialize the Retriever with database connections.
 
         Args:
             max_results: Maximum number of results to return (default: 10)
-            min_similarity_threshold: Minimum similarity score threshold (default: 0.0)
+            min_similarity_threshold: Minimum similarity score threshold (default: 0.6)
         """
 
         self.max_results: int = max_results
@@ -109,8 +109,6 @@ class Retriever:
 
         Args:
             query: Natural language query
-            max_results: Override default max results for this search
-            min_similarity_threshold: Override default similarity threshold
 
         Returns:
             List of RetrievalResult objects sorted by similarity score (highest first)

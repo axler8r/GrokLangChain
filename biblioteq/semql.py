@@ -5,6 +5,9 @@ retrieves relevant data from vector and document databases, and generates
 responses based on user queries.
 """
 
+import asyncio
+import concurrent.futures
+
 from asyncio import AbstractEventLoop
 from dataclasses import dataclass
 from typing import Any, Dict, List
@@ -90,16 +93,11 @@ class RetrieveDocumentsTool(BaseTool[RetrieveDocumentsInput, RetrieveDocumentsOu
         try:
             # Call retriever service synchronously in async context
             # Use asyncio.get_event_loop().run_in_executor to avoid blocking
-            import asyncio
-            import concurrent.futures
-
             loop: AbstractEventLoop = asyncio.get_event_loop()
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 results = await loop.run_in_executor(
                     executor,
-                    lambda: self.retriever_service.search(
-                        query=args.query, max_results=5, min_similarity_threshold=0.1
-                    ),
+                    lambda: self.retriever_service.search(query=args.query),
                 )
 
             # Format results for the tool output
@@ -147,9 +145,6 @@ class SemanticQueryLayer:
         self._setup_agents()
 
     def _setup_agents(self) -> None:
-        """Set up the autogen agents for the workflow."""
-
-        # Convert to proper Autogen component format
         self.model_config = {
             "provider": "OpenAIChatCompletionClient",
             "config": {
@@ -158,7 +153,6 @@ class SemanticQueryLayer:
             },
         }
 
-        # Create the retrieval tool
         self.retrieval_tool = RetrieveDocumentsTool(self.retriever_service)
 
     def _extract_sources(self, retrieval_result):
@@ -175,21 +169,10 @@ class SemanticQueryLayer:
         return sources
 
     def _calculate_confidence(self, sources: List[Dict[str, Any]]) -> float:
-        """Calculate confidence score based on retrieval results.
-
-        Args:
-            sources: List of source dictionaries with scores
-
-        Returns:
-            Confidence score between 0.0 and 1.0
-        """
         if not sources:
             return 0.0
 
-        # Use the highest similarity score as base confidence
         max_score = max(source.get("score", 0.0) for source in sources)
-
-        # Adjust based on number of sources (more sources = higher confidence)
         source_bonus: float = min(len(sources) * 0.1, 0.3)
 
         return min(max_score + source_bonus, 1.0)
@@ -215,7 +198,6 @@ class SemanticQueryLayer:
             )
 
             sources = self._extract_sources(retrieval_result)
-
             confidence: float = self._calculate_confidence(sources)
 
             if sources:
@@ -223,21 +205,9 @@ class SemanticQueryLayer:
                     [chunk.get("content", "") for chunk in retrieval_result.chunks]
                 )
 
-                # Create model client for generating summary
-                if "provider" in self.model_config:
-                    model_config = self.model_config
-                else:
-                    model_config = {
-                        "provider": "openai",
-                        "config": {
-                            "model": self.model_config.get("model", "gpt-4"),
-                            "api_key": self.model_config.get("api_key"),
-                        },
-                    }
-
                 try:
                     model_client: ChatCompletionClient = (
-                        ChatCompletionClient.load_component(model_config)
+                        ChatCompletionClient.load_component(self.model_config)
                     )
 
                     # Create assistant agent for summarization
