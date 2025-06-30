@@ -97,9 +97,7 @@ class RetrieveDocumentsTool(BaseTool[RetrieveDocumentsInput, RetrieveDocumentsOu
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 results = await loop.run_in_executor(
                     executor,
-                    lambda: self.retriever_service.search(
-                        query=args.query, max_results=5, min_similarity_threshold=0.1
-                    ),
+                    lambda: self.retriever_service.search(query=args.query),
                 )
 
             # Format results for the tool output
