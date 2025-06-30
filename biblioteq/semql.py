@@ -205,21 +205,9 @@ class SemanticQueryLayer:
                     [chunk.get("content", "") for chunk in retrieval_result.chunks]
                 )
 
-                # Create model client for generating summary
-                if "provider" in self.model_config:
-                    model_config = self.model_config
-                else:
-                    model_config = {
-                        "provider": "openai",
-                        "config": {
-                            "model": self.model_config.get("model", "gpt-4"),
-                            "api_key": self.model_config.get("api_key"),
-                        },
-                    }
-
                 try:
                     model_client: ChatCompletionClient = (
-                        ChatCompletionClient.load_component(model_config)
+                        ChatCompletionClient.load_component(self.model_config)
                     )
 
                     # Create assistant agent for summarization
