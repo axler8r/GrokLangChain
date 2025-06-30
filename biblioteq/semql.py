@@ -147,9 +147,6 @@ class SemanticQueryLayer:
         self._setup_agents()
 
     def _setup_agents(self) -> None:
-        """Set up the autogen agents for the workflow."""
-
-        # Convert to proper Autogen component format
         self.model_config = {
             "provider": "OpenAIChatCompletionClient",
             "config": {
@@ -158,7 +155,6 @@ class SemanticQueryLayer:
             },
         }
 
-        # Create the retrieval tool
         self.retrieval_tool = RetrieveDocumentsTool(self.retriever_service)
 
     def _extract_sources(self, retrieval_result):
@@ -175,21 +171,10 @@ class SemanticQueryLayer:
         return sources
 
     def _calculate_confidence(self, sources: List[Dict[str, Any]]) -> float:
-        """Calculate confidence score based on retrieval results.
-
-        Args:
-            sources: List of source dictionaries with scores
-
-        Returns:
-            Confidence score between 0.0 and 1.0
-        """
         if not sources:
             return 0.0
 
-        # Use the highest similarity score as base confidence
         max_score = max(source.get("score", 0.0) for source in sources)
-
-        # Adjust based on number of sources (more sources = higher confidence)
         source_bonus: float = min(len(sources) * 0.1, 0.3)
 
         return min(max_score + source_bonus, 1.0)
@@ -215,7 +200,6 @@ class SemanticQueryLayer:
             )
 
             sources = self._extract_sources(retrieval_result)
-
             confidence: float = self._calculate_confidence(sources)
 
             if sources:
