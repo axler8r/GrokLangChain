@@ -5,6 +5,9 @@ retrieves relevant data from vector and document databases, and generates
 responses based on user queries.
 """
 
+import asyncio
+import concurrent.futures
+
 from asyncio import AbstractEventLoop
 from dataclasses import dataclass
 from typing import Any, Dict, List
@@ -90,9 +93,6 @@ class RetrieveDocumentsTool(BaseTool[RetrieveDocumentsInput, RetrieveDocumentsOu
         try:
             # Call retriever service synchronously in async context
             # Use asyncio.get_event_loop().run_in_executor to avoid blocking
-            import asyncio
-            import concurrent.futures
-
             loop: AbstractEventLoop = asyncio.get_event_loop()
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 results = await loop.run_in_executor(
