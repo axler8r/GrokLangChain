@@ -114,13 +114,33 @@ class Loader:
         )
         return response.data[0].embedding
 
-    def _store_vector_in_qdrant(
+    def _store_embedding_in_qdrant(
         self, chunk_id: str, vector: List[float], metadata: Dict[str, Any]
     ) -> None:
         point = PointStruct(id=chunk_id, vector=vector, payload=metadata)
         self.qdrant_client.upsert(
             collection_name=self.qdrant_collection, points=[point]
         )
+
+    def _index_chunk(self, chunk, pdf_path: Path, index: int) -> None:
+        chunk_id: str = self._generate_chunk_id(str(pdf_path), index)
+
+        chunk_record = {
+            "_id": chunk_id,
+            "source_file": str(pdf_path),
+            "chunk_index": index,
+            "text": chunk,
+            "token_count": len(self.tokenizer.encode(chunk)),
+        }
+        self._store_chunk_in_mongo(chunk_record)
+
+        embedding: List[float] = self._get_embedding(chunk)
+        embedding_record = {
+            "source_file": str(pdf_path),
+            "chunk_index": index,
+            "token_count": chunk_record["token_count"],
+        }
+        self._store_embedding_in_qdrant(chunk_id, embedding, embedding_record)
 
     def process_pdf_file(self, pdf_path: Path) -> int:
         """Process a single PDF file through the complete pipeline.
@@ -140,36 +160,10 @@ class Loader:
         # Chunk the text
         chunks: List[str] = self._chunk_text(text)
 
+        # Index each chunk
         processed_count = 0
         for i, chunk in enumerate(chunks):
-            # Generate unique ID for chunk
-            chunk_id: str = self._generate_chunk_id(str(pdf_path), i)
-
-            # Prepare chunk data for MongoDB
-            chunk_data = {
-                "_id": chunk_id,
-                "source_file": str(pdf_path),
-                "chunk_index": i,
-                "text": chunk,
-                "token_count": len(self.tokenizer.encode(chunk)),
-            }
-
-            # Store chunk in MongoDB
-            self._store_chunk_in_mongo(chunk_data)
-
-            # Generate embedding
-            embedding: List[float] = self._get_embedding(chunk)
-
-            # Prepare metadata for Qdrant
-            metadata = {
-                "source_file": str(pdf_path),
-                "chunk_index": i,
-                "token_count": chunk_data["token_count"],
-            }
-
-            # Store vector in Qdrant
-            self._store_vector_in_qdrant(chunk_id, embedding, metadata)
-
+            self._index_chunk(chunk, pdf_path, i)
             processed_count += 1
 
         return processed_count
