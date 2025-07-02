@@ -27,7 +27,7 @@ configuration: Configuration = Configuration.get_instance()
 def apply_material_design_styles() -> None:
     """Apply Material Design-inspired CSS styles to the Streamlit app."""
     # Load CSS from external file
-    css_path: Path = Path(__file__).parent / "styles.css"
+    css_path: Path = Path(__file__).parent / "axler8r.css"
 
     with open(css_path, "r") as css_file:
         css_content: str = css_file.read()
