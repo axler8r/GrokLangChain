@@ -18,20 +18,20 @@ body {
 
 /* Header Styling */
 header {
-    background-color: #4CAF50;
+    background-color: #E95420;
     color: white;
     padding: 1rem;
     text-align: center;
     font-size: 1.5rem;
     font-weight: bold;
-    border-bottom: 4px solid #388E3C;
+    border-bottom: 4px solid #B8441F;
 }
 
 /* Navigation Bar */
 nav {
     display: flex;
     justify-content: space-around;
-    background-color: #388E3C;
+    background-color: #B8441F;
     padding: 0.5rem;
 }
 
@@ -45,7 +45,7 @@ nav a {
 }
 
 nav a:hover {
-    background-color: #4CAF50;
+    background-color: #E95420;
 }
 
 /* Main Content */
@@ -60,26 +60,174 @@ main {
 
 /* Footer Styling */
 footer {
-    background-color: #4CAF50;
+    background-color: #E95420;
     color: white;
     text-align: center;
     padding: 1rem;
-    border-top: 4px solid #388E3C;
+    border-top: 4px solid #B8441F;
 }
 
 /* Buttons */
 button {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
+    background-color: #f8f9fa;
+    color: #333;
+    border: 1px solid #ddd;
     padding: 0.5rem 1rem;
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s;
+    text-align: left;
 }
 
 button:hover {
-    background-color: #388E3C;
+    background-color: #E95420;
+    color: white;
+    border-color: #E95420;
+}
+
+button:active {
+    background-color: #B8441F;
+    color: white;
+    border-color: #B8441F;
+}
+
+button:focus {
+    background-color: #f8f9fa;
+    color: #333;
+    border-color: #E95420;
+    outline: none;
+}
+
+button:focus:hover {
+    background-color: #E95420;
+    color: white;
+    border-color: #E95420;
+}
+
+/* Streamlit specific button styling */
+.stButton > button {
+    background-color: #f8f9fa;
+    color: #333 !important;
+    border: 1px solid #ddd;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    width: 100%;
+}
+
+.stButton > button:hover {
+    background-color: #E95420;
+    color: white !important;
+    border-color: #E95420;
+}
+
+.stButton > button:active {
+    background-color: #B8441F;
+    color: white !important;
+    border-color: #B8441F;
+}
+
+.stButton > button:focus {
+    background-color: #f8f9fa;
+    color: #333 !important;
+    border-color: #E95420;
+    outline: none;
+}
+
+.stButton > button:focus:hover {
+    background-color: #E95420;
+    color: white !important;
+    border-color: #E95420;
+}
+
+/* File uploader button styling */
+.stFileUploader button,
+.stFileUploader div[data-testid="fileUploaderButton"] button {
+    background-color: #f8f9fa !important;
+    color: #333 !important;
+    border: 1px solid #ddd !important;
+    padding: 0.5rem 1rem !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    transition: all 0.3s !important;
+}
+
+.stFileUploader button:hover,
+.stFileUploader div[data-testid="fileUploaderButton"] button:hover {
+    background-color: #E95420 !important;
+    color: white !important;
+    border-color: #E95420 !important;
+}
+
+.stFileUploader button:focus,
+.stFileUploader div[data-testid="fileUploaderButton"] button:focus {
+    background-color: #f8f9fa !important;
+    color: #333 !important;
+    border-color: #E95420 !important;
+    outline: none !important;
+}
+
+.stFileUploader button:focus:hover,
+.stFileUploader div[data-testid="fileUploaderButton"] button:focus:hover {
+    background-color: #E95420 !important;
+    color: white !important;
+    border-color: #E95420 !important;
+}
+
+/* Default text color - black */
+.stButton > button p,
+.stButton > button span,
+.stButton > button div {
+    color: #333 !important;
+}
+
+/* White text only on hover and active */
+.stButton > button:hover p,
+.stButton > button:hover span,
+.stButton > button:hover div {
+    color: white !important;
+}
+
+.stButton > button:active p,
+.stButton > button:active span,
+.stButton > button:active div {
+    color: white !important;
+}
+
+/* Focus state keeps black text unless also hovering */
+.stButton > button:focus p,
+.stButton > button:focus span,
+.stButton > button:focus div {
+    color: #333 !important;
+}
+
+.stButton > button:focus:hover p,
+.stButton > button:focus:hover span,
+.stButton > button:focus:hover div {
+    color: white !important;
+}
+
+/* Default black text for all elements within buttons */
+.stButton button * {
+    color: #333 !important;
+}
+
+/* White text for all elements only on hover and active */
+.stButton button:hover *,
+.stButton button:active * {
+    color: white !important;
+}
+
+/* Focus keeps black text unless also hovering */
+.stButton button:focus * {
+    color: #333 !important;
+}
+
+.stButton button:focus:hover * {
+    color: white !important;
 }
 
 /* Forms */
@@ -92,7 +240,7 @@ input, textarea {
 }
 
 input:focus, textarea:focus {
-    border-color: #4CAF50;
+    border-color: #E95420;
     outline: none;
 }
 

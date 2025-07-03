@@ -299,21 +299,39 @@ def main() -> None:
     apply_material_design_styles()
     render_header()
 
+    # Initialize session state for navigation
+    if "selected_action" not in st.session_state:
+        st.session_state.selected_action = "Load"
+
     # Sidebar navigation
     with st.sidebar:
         st.markdown("## Navigation")
 
-        action: str = st.radio(
-            "Select Action",
-            ["Load", "Query"],
-            index=0,
-            help="Choose whether to load new documents or query existing ones",
-        )
+        # Query button
+        if st.button(
+            "Query Library",
+            key="query_btn",
+            help="Search and query your document library",
+            use_container_width=True,
+        ):
+            st.session_state.selected_action = "Query"
+
+        # Load button
+        if st.button(
+            "Load Documents",
+            key="load_btn",
+            help="Load new documents into your library",
+            use_container_width=True,
+        ):
+            st.session_state.selected_action = "Load"
+
+        # Show current selection
+        st.markdown(f"**Current:** {st.session_state.selected_action}")
 
     # Main content area
-    if action == "Load":
+    if st.session_state.selected_action == "Load":
         render_load_section()
-    elif action == "Query":
+    elif st.session_state.selected_action == "Query":
         render_query_section()
 
 
