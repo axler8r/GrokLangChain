@@ -17,12 +17,10 @@ from pymongo import MongoClient
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
-from biblioteq.config import Configuration
-
-configuration: Configuration = Configuration.get_instance()
+from biblioteq.config import Configurable
 
 
-class Loader:
+class Loader(Configurable):
     """Index PDF files.
 
     This class handles the complete pipeline of PDF processing:
@@ -44,23 +42,24 @@ class Loader:
             chunk_size: Size of text chunks in tokens (default: 512)
             chunk_overlap: Overlap between chunks in tokens (default: 64)
         """
+        super().__init__()
 
         self.chunk_size: int = chunk_size
         self.chunk_overlap: int = chunk_overlap
 
-        self.mongo_client = MongoClient(configuration.mongo_uri)
-        self.mongo_db = self.mongo_client[configuration.mongo_db]
-        self.mongo_collection = self.mongo_db[configuration.mongo_collection]
+        self.mongo_client = MongoClient(self._config.mongo_uri)
+        self.mongo_db = self.mongo_client[self._config.mongo_db]
+        self.mongo_collection = self.mongo_db[self._config.mongo_collection]
 
         self.qdrant_client = QdrantClient(
-            host=configuration.qdrant_host, port=configuration.qdrant_port
+            host=self._config.qdrant_host, port=self._config.qdrant_port
         )
-        self.qdrant_collection: str = configuration.qdrant_collection
+        self.qdrant_collection: str = self._config.qdrant_collection
 
-        openai.api_key = configuration.openai_api_key
+        openai.api_key = self._config.openai_api_key
 
         self.tokenizer: tiktoken.Encoding = tiktoken.encoding_for_model(
-            configuration.openai_encoding_model
+            self._config.openai_encoding_model
         )
 
         self._ensure_qdrant_collection()
@@ -110,7 +109,7 @@ class Loader:
 
     def _get_embedding(self, text: str) -> List[float]:
         response: CreateEmbeddingResponse = openai.embeddings.create(
-            input=text, model=configuration.openai_encoding_model
+            input=text, model=self._config.openai_encoding_model
         )
         return response.data[0].embedding
 

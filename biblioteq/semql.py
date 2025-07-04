@@ -18,10 +18,8 @@ from autogen_agentchat.messages import TextMessage
 from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
 from autogen_core.tools import BaseTool
-from biblioteq.config import Configuration
+from biblioteq.config import Configurable
 from pydantic import BaseModel, Field
-
-configuration: Configuration = Configuration.get_instance()
 
 
 @dataclass
@@ -126,7 +124,7 @@ class RetrieveDocumentsTool(BaseTool[RetrieveDocumentsInput, RetrieveDocumentsOu
             )
 
 
-class SemanticQueryLayer:
+class SemanticQueryLayer(Configurable):
     """Semantic Query Layer that coordinates between UI and data services.
 
     This class acts as the main orchestrator for processing natural language
@@ -141,6 +139,8 @@ class SemanticQueryLayer:
         Args:
             retriever_service: The retriever service for database queries
         """
+        super().__init__()
+
         self.retriever_service = retriever_service
         self._setup_agents()
 
@@ -148,8 +148,8 @@ class SemanticQueryLayer:
         self.model_config = {
             "provider": "OpenAIChatCompletionClient",
             "config": {
-                "model": configuration.openai_model,
-                "api_key": configuration.openai_api_key,
+                "model": self._config.openai_model,
+                "api_key": self._config.openai_api_key,
             },
         }
 

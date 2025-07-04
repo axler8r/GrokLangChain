@@ -8,13 +8,11 @@ from typing import List
 
 import openai
 import tiktoken
-from biblioteq.config import Configuration
+from biblioteq.config import Configurable
 from openai.types.create_embedding_response import CreateEmbeddingResponse
 from pymongo import MongoClient
 from qdrant_client import QdrantClient
 from qdrant_client.models import ScoredPoint
-
-configuration: Configuration = Configuration.get_instance()
 
 
 class RetrievalResult:
@@ -47,7 +45,7 @@ class RetrievalResult:
         self.token_count: int = token_count
 
 
-class Retriever:
+class Retriever(Configurable):
     """Retrieves relevant text chunks based on natural language queries.
 
     This class handles the complete pipeline of query processing:
@@ -69,19 +67,21 @@ class Retriever:
             min_similarity_threshold: Minimum similarity score threshold (default: 0.6)
         """
 
+        super().__init__()
+
         self.max_results: int = max_results
         self.min_similarity_threshold: float = min_similarity_threshold
 
-        self.mongo_client = MongoClient(configuration.mongo_uri)
-        self.mongo_db = self.mongo_client[configuration.mongo_db]
-        self.mongo_collection = self.mongo_db[configuration.mongo_collection]
+        self.mongo_client = MongoClient(self._config.mongo_uri)
+        self.mongo_db = self.mongo_client[self._config.mongo_db]
+        self.mongo_collection = self.mongo_db[self._config.mongo_collection]
 
         self.qdrant_client = QdrantClient(
-            host=configuration.qdrant_host, port=configuration.qdrant_port
+            host=self._config.qdrant_host, port=self._config.qdrant_port
         )
-        self.qdrant_collection: str = configuration.qdrant_collection
+        self.qdrant_collection: str = self._config.qdrant_collection
 
-        openai.api_key = configuration.openai_api_key
+        openai.api_key = self._config.openai_api_key
 
         self.tokenizer: tiktoken.Encoding = tiktoken.encoding_for_model(
             "text-embedding-ada-002"

@@ -1,4 +1,6 @@
 import os
+from abc import ABC
+
 from attr import dataclass
 from dotenv import load_dotenv
 
@@ -39,3 +41,12 @@ class Configuration:
         if not hasattr(cls, "_instance"):
             cls._instance = cls()
         return cls._instance
+
+class Configurable(ABC):
+    """Abstract base class for configurable components.
+
+    This class provides a method to get the configuration instance.
+    """
+    def __init__(self):
+        """Initializes the Configurable instance."""
+        self._config = Configuration.get_instance()
