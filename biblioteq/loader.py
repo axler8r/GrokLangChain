@@ -9,7 +9,7 @@ import base64
 import hashlib
 import io
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import openai
 import pypdf
@@ -22,6 +22,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from biblioteq.config import Configurable
+from biblioteq.schema import ChunkRecord, EmbeddingMetadata
 
 
 class Loader(Configurable):
@@ -137,8 +138,13 @@ class Loader(Configurable):
         content: str = f"{document_checksum}:{chunk_index}"
         return hashlib.md5(content.encode()).hexdigest()
 
-    def _store_chunk_in_mongo(self, chunk_data: Dict[str, Any]) -> None:
-        self.mongo_collection.insert_one(chunk_data)
+    def _store_chunk_in_mongo(self, chunk_record: ChunkRecord) -> None:
+        """Store a chunk record in MongoDB.
+        
+        Args:
+            chunk_record: ChunkRecord instance to store
+        """
+        self.mongo_collection.insert_one(chunk_record.to_mongo_dict())
 
     def _get_embedding(self, text: str) -> List[float]:
         response: CreateEmbeddingResponse = openai.embeddings.create(
@@ -147,9 +153,16 @@ class Loader(Configurable):
         return response.data[0].embedding
 
     def _store_embedding_in_qdrant(
-        self, chunk_id: str, vector: List[float], metadata: Dict[str, Any]
+        self, chunk_id: str, vector: List[float], metadata: EmbeddingMetadata
     ) -> None:
-        point = PointStruct(id=chunk_id, vector=vector, payload=metadata)
+        """Store vector embedding in Qdrant with metadata.
+        
+        Args:
+            chunk_id: Unique identifier for the chunk
+            vector: Embedding vector
+            metadata: EmbeddingMetadata instance
+        """
+        point = PointStruct(id=chunk_id, vector=vector, payload=metadata.to_qdrant_payload())
         self.qdrant_client.upsert(
             collection_name=self.qdrant_collection, points=[point]
         )
@@ -162,27 +175,39 @@ class Loader(Configurable):
         thumbnail: str,
         index: int,
     ) -> None:
+        """Index a single chunk in both MongoDB and Qdrant.
+        
+        Args:
+            chunk: Text content of the chunk
+            document_checksum: MD5 checksum of the source document
+            document_title: Title of the document
+            thumbnail: Base64-encoded thumbnail
+            index: Index of the chunk within the document
+        """
         chunk_id: str = self._generate_chunk_id(document_checksum, index)
+        token_count = len(self.tokenizer.encode(chunk))
 
-        chunk_record = {
-            "_id": chunk_id,
-            "document_title": document_title,
-            "document_checksum": document_checksum,
-            "thumbnail": thumbnail,
-            "chunk_index": index,
-            "text": chunk,
-            "token_count": len(self.tokenizer.encode(chunk)),
-        }
+        # Create chunk record for MongoDB
+        chunk_record = ChunkRecord(
+            chunk_id=chunk_id,
+            document_title=document_title,
+            document_checksum=document_checksum,
+            thumbnail=thumbnail,
+            chunk_index=index,
+            text=chunk,
+            token_count=token_count,
+        )
         self._store_chunk_in_mongo(chunk_record)
 
+        # Create embedding and metadata for Qdrant
         embedding: List[float] = self._get_embedding(chunk)
-        embedding_record = {
-            "document_title": document_title,
-            "document_checksum": document_checksum,
-            "chunk_index": index,
-            "token_count": chunk_record["token_count"],
-        }
-        self._store_embedding_in_qdrant(chunk_id, embedding, embedding_record)
+        embedding_metadata = EmbeddingMetadata(
+            document_title=document_title,
+            document_checksum=document_checksum,
+            chunk_index=index,
+            token_count=token_count,
+        )
+        self._store_embedding_in_qdrant(chunk_id, embedding, embedding_metadata)
 
     def process_pdf_file(self, pdf_path: Path, document_name: str) -> int:
         """Process a single PDF file through the complete pipeline.
