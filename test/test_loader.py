@@ -50,6 +50,7 @@ def create_mock_loader() -> Loader:
         loader._ensure_qdrant_collection = Mock()
         loader._store_chunk_in_mongo = Mock()
         loader._store_embedding_in_qdrant = Mock()
+        loader._create_thumbnail = Mock(return_value="mock_base64_thumbnail")
 
         return loader
 
@@ -144,34 +145,107 @@ class TestLoader:
         mock_get_embedding.assert_called_once_with(test_text)
 
     def test_generate_chunk_id(self, create_mock_loader: Loader) -> None:
-        """Test chunk ID generation."""
-        file_path = "/test/path/file.pdf"
+        """Test chunk ID generation based on document checksum."""
+        document_checksum = "a1b2c3d4e5f6g7h8i9j0"  # Mock checksum
         chunk_index = 5
 
-        chunk_id: str = create_mock_loader._generate_chunk_id(file_path, chunk_index)
+        chunk_id: str = create_mock_loader._generate_chunk_id(
+            document_checksum, chunk_index
+        )
 
         assert isinstance(chunk_id, str), "Chunk ID should be a string"
         assert len(chunk_id) == 32, "MD5 hash should be 32 characters long"
 
         # Test that same inputs produce same ID
-        chunk_id2: str = create_mock_loader._generate_chunk_id(file_path, chunk_index)
+        chunk_id2: str = create_mock_loader._generate_chunk_id(
+            document_checksum, chunk_index
+        )
         assert chunk_id == chunk_id2, "Same inputs should produce identical chunk IDs"
 
         # Test that different inputs produce different IDs
         chunk_id3: str = create_mock_loader._generate_chunk_id(
-            file_path, chunk_index + 1
+            document_checksum, chunk_index + 1
         )
         assert chunk_id != chunk_id3, (
             "Different inputs should produce different chunk IDs"
         )
 
+    def test_generate_document_checksum(
+        self, create_mock_loader: Loader, test_pdf_path: Path
+    ) -> None:
+        """Test document checksum generation."""
+        checksum: str = create_mock_loader._generate_document_checksum(test_pdf_path)
+
+        assert isinstance(checksum, str), "Checksum should be a string"
+        assert len(checksum) == 32, "MD5 checksum should be 32 characters long"
+        assert checksum.isalnum(), "Checksum should be alphanumeric"
+
+        # Test that same file produces same checksum
+        checksum2: str = create_mock_loader._generate_document_checksum(test_pdf_path)
+        assert checksum == checksum2, "Same file should produce identical checksums"
+
+    @patch("biblioteq.loader.convert_from_path")
+    @patch("biblioteq.loader.io.BytesIO")
+    @patch("biblioteq.loader.base64.b64encode")
+    def test_create_thumbnail(
+        self,
+        mock_b64encode,
+        mock_bytesio,
+        mock_convert,
+        create_mock_loader: Loader,
+        test_pdf_path: Path,
+    ) -> None:
+        """Test thumbnail creation from PDF."""
+        # Mock the PDF to image conversion
+        mock_image = Mock()
+        mock_image.thumbnail = Mock()
+        mock_image.save = Mock()
+        mock_convert.return_value = [mock_image]
+
+        # Mock BytesIO and base64 encoding
+        mock_output = Mock()
+        mock_output.read.return_value = b"mock_image_data"
+        mock_bytesio.return_value = mock_output
+        mock_b64encode.return_value = b"mock_base64_data"
+
+        # Remove the _create_thumbnail mock to test the real method
+        del create_mock_loader._create_thumbnail
+
+        thumbnail: str = create_mock_loader._create_thumbnail(test_pdf_path)
+
+        assert isinstance(thumbnail, str), "Thumbnail should be a string"
+        assert len(thumbnail) > 0, "Thumbnail should not be empty"
+
+        # Verify the mocked methods were called
+        mock_convert.assert_called_once_with(test_pdf_path, first_page=1, last_page=1)
+        # Check that thumbnail was called with correct size, regardless of resample value
+        mock_image.thumbnail.assert_called_once()
+        call_args = mock_image.thumbnail.call_args
+        assert call_args.kwargs["size"] == (160, 160), (
+            "Thumbnail should be resized to 160x160"
+        )
+        mock_image.save.assert_called_once()
+
     @patch.object(Loader, "_get_embedding")
+    @patch.object(Loader, "_create_thumbnail")
     def test_end_to_end_chunking_and_encoding(
-        self, mock_get_embedding, create_mock_loader: Loader, test_pdf_path: Path
+        self,
+        mock_thumbnail,
+        mock_get_embedding,
+        create_mock_loader: Loader,
+        test_pdf_path: Path,
     ) -> None:
         """Test end-to-end chunking and encoding without database storage."""
         # Mock the _get_embedding method directly
         mock_get_embedding.return_value = [0.1] * 1536
+        # Mock thumbnail creation
+        mock_thumbnail.return_value = "mock_thumbnail_base64_string"
+
+        # Generate document checksum and mock thumbnail
+        document_checksum: str = create_mock_loader._generate_document_checksum(
+            test_pdf_path
+        )
+        document_title = test_pdf_path.stem
 
         # Extract and chunk text
         text: str = create_mock_loader._extract_text_from_pdf(test_pdf_path)
@@ -183,8 +257,8 @@ class TestLoader:
         sample_chunks: List[str] = chunks[:3] if len(chunks) >= 3 else chunks
 
         for i, chunk in enumerate(sample_chunks):
-            # Generate chunk ID
-            chunk_id = create_mock_loader._generate_chunk_id(str(test_pdf_path), i)
+            # Generate chunk ID using document checksum
+            chunk_id = create_mock_loader._generate_chunk_id(document_checksum, i)
             assert chunk_id is not None, f"Should generate chunk ID for chunk {i}"
 
             # Get embedding
@@ -196,15 +270,23 @@ class TestLoader:
             # Verify chunk data structure (what would be stored in MongoDB)
             chunk_data = {
                 "_id": chunk_id,
-                "source_file": str(test_pdf_path),
+                "document_title": document_title,
+                "document_checksum": document_checksum,
+                "thumbnail": "mock_thumbnail_base64_string",
                 "chunk_index": i,
                 "text": chunk,
                 "token_count": len(create_mock_loader.tokenizer.encode(chunk)),
             }
 
             assert chunk_data["_id"] == chunk_id, "Chunk data should have correct ID"
-            assert chunk_data["source_file"] == str(test_pdf_path), (
-                "Chunk data should have correct source file"
+            assert chunk_data["document_title"] == document_title, (
+                "Chunk data should have correct document title"
+            )
+            assert chunk_data["document_checksum"] == document_checksum, (
+                "Chunk data should have correct document checksum"
+            )
+            assert chunk_data["thumbnail"] == "mock_thumbnail_base64_string", (
+                "Chunk data should have correct thumbnail"
             )
             assert chunk_data["chunk_index"] == i, (
                 "Chunk data should have correct index"
@@ -246,3 +328,120 @@ class TestLoader:
         assert create_mock_loader.chunk_overlap < create_mock_loader.chunk_size, (
             "Chunk overlap should be less than chunk size"
         )
+
+    @patch.object(Loader, "process_pdf_file")
+    def test_process_directory(
+        self, mock_process_pdf, create_mock_loader: Loader, tmp_path: Path
+    ) -> None:
+        """Test directory processing with automatic document naming."""
+        # Create test directory with mock PDF files
+        test_dir = tmp_path / "test_pdfs"
+        test_dir.mkdir()
+
+        # Create mock PDF files
+        pdf1 = test_dir / "document1.pdf"
+        pdf2 = test_dir / "document2.pdf"
+        pdf1.write_bytes(b"mock pdf content 1")
+        pdf2.write_bytes(b"mock pdf content 2")
+
+        # Mock the process_pdf_file method to return different values for different files
+        def mock_side_effect(pdf_path, document_name):
+            if pdf_path == pdf1:
+                return 5
+            elif pdf_path == pdf2:
+                return 3
+            else:
+                return 0
+
+        mock_process_pdf.side_effect = mock_side_effect
+
+        # Process directory
+        results = create_mock_loader.process_directory(test_dir)
+
+        # Verify results
+        assert len(results) == 2, "Should process both PDF files"
+        assert str(pdf1) in results, "Should include first PDF in results"
+        assert str(pdf2) in results, "Should include second PDF in results"
+        assert results[str(pdf1)] == 5, (
+            "Should return correct chunk count for first PDF"
+        )
+        assert results[str(pdf2)] == 3, (
+            "Should return correct chunk count for second PDF"
+        )
+
+        # Verify process_pdf_file was called with correct document names
+        mock_process_pdf.assert_any_call(pdf1, "document1")
+        mock_process_pdf.assert_any_call(pdf2, "document2")
+
+    @patch.object(Loader, "_get_embedding")
+    @patch("biblioteq.loader.convert_from_path")
+    @patch("biblioteq.loader.io.BytesIO")
+    @patch("biblioteq.loader.base64.b64encode")
+    def test_optimized_workflow_integration(
+        self,
+        mock_b64encode,
+        mock_bytesio,
+        mock_convert,
+        mock_get_embedding,
+        create_mock_loader: Loader,
+        test_pdf_path: Path,
+    ) -> None:
+        """Test the complete optimized workflow with checksum and single thumbnail generation."""
+        # Mock dependencies
+        mock_image = Mock()
+        mock_image.thumbnail = Mock()
+        mock_image.save = Mock()
+        mock_convert.return_value = [mock_image]
+        mock_get_embedding.return_value = [0.1] * 1536
+
+        # Mock BytesIO and base64 encoding for thumbnail generation
+        mock_output = Mock()
+        mock_output.read.return_value = b"mock_image_data"
+        mock_bytesio.return_value = mock_output
+        mock_b64encode.return_value = b"mock_base64_data"
+
+        # Ensure the database methods are properly mocked for call tracking
+        mock_store_mongo = Mock()
+        mock_store_qdrant = Mock()
+        create_mock_loader._store_chunk_in_mongo = mock_store_mongo
+        create_mock_loader._store_embedding_in_qdrant = mock_store_qdrant
+
+        # Remove the _create_thumbnail mock to test the real thumbnail generation
+        del create_mock_loader._create_thumbnail
+
+        # Process the PDF file
+        document_name = "test_document"
+        chunk_count = create_mock_loader.process_pdf_file(test_pdf_path, document_name)
+
+        assert chunk_count > 0, "Should process at least one chunk"
+
+        # Verify thumbnail was created only once (not per chunk)
+        mock_convert.assert_called_once_with(test_pdf_path, first_page=1, last_page=1)
+
+        # Verify database storage methods were called
+        assert mock_store_mongo.call_count == chunk_count
+        assert mock_store_qdrant.call_count == chunk_count
+
+        # Verify the stored data has correct structure
+        stored_chunk_calls = mock_store_mongo.call_args_list
+        for call in stored_chunk_calls:
+            chunk_data = call[0][0]  # First argument of the call
+
+            # Check required fields are present
+            assert "_id" in chunk_data
+            assert "document_title" in chunk_data
+            assert "document_checksum" in chunk_data
+            assert "thumbnail" in chunk_data
+            assert "chunk_index" in chunk_data
+            assert "text" in chunk_data
+            assert "token_count" in chunk_data
+
+            # Check field types and values
+            assert isinstance(chunk_data["_id"], str)
+            assert chunk_data["document_title"] == document_name
+            assert isinstance(chunk_data["document_checksum"], str)
+            assert len(chunk_data["document_checksum"]) == 32  # MD5 length
+            assert isinstance(chunk_data["chunk_index"], int)
+            assert isinstance(chunk_data["text"], str)
+            assert isinstance(chunk_data["token_count"], int)
+            assert chunk_data["token_count"] > 0
