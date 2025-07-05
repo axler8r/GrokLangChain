@@ -9,8 +9,7 @@ import asyncio
 import concurrent.futures
 
 from asyncio import AbstractEventLoop
-from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, List
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base._chat_agent import Response
@@ -19,37 +18,12 @@ from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
 from autogen_core.tools import BaseTool
 from biblioteq.config import Configurable
-from pydantic import BaseModel, Field
-
-
-@dataclass
-class QueryResponse:
-    """Response from a semantic query.
-
-    Attributes:
-        answer: The generated response to the user's query
-        sources: List of source documents/chunks used to generate the answer
-        confidence: Confidence score of the response (0.0 to 1.0)
-        metadata: Additional metadata about the query processing
-    """
-
-    answer: str
-    sources: List[Dict[str, Any]]
-    confidence: float
-    metadata: Dict[str, Any]
-
-
-class RetrieveDocumentsInput(BaseModel):
-    """Input schema for document retrieval."""
-
-    query: str = Field(description="The search query to find relevant document chunks")
-
-
-class RetrieveDocumentsOutput(BaseModel):
-    """Output schema for document retrieval."""
-
-    chunks: List[Dict[str, Any]] = Field(description="List of relevant document chunks")
-    total_results: int = Field(description="Total number of results found")
+from biblioteq.schema import (
+    QueryResponse,
+    RetrieveDocumentsInput,
+    RetrieveDocumentsOutput,
+    SourceMetadata,
+)
 
 
 class RetrieveDocumentsTool(BaseTool[RetrieveDocumentsInput, RetrieveDocumentsOutput]):
@@ -78,13 +52,7 @@ class RetrieveDocumentsTool(BaseTool[RetrieveDocumentsInput, RetrieveDocumentsOu
         """
         if not self.retriever_service:
             return RetrieveDocumentsOutput(
-                chunks=[
-                    {
-                        "content": "No retriever service available",
-                        "source": "system",
-                        "score": 0.0,
-                    }
-                ],
+                chunks=[],
                 total_results=0,
             )
 
@@ -98,28 +66,13 @@ class RetrieveDocumentsTool(BaseTool[RetrieveDocumentsInput, RetrieveDocumentsOu
                     lambda: self.retriever_service.search(query=args.query),
                 )
 
-            # Format results for the tool output
-            chunks = []
-            for result in results:
-                chunk = {
-                    "content": result.text,
-                    "source": result.source_file,
-                    "chunk_index": result.chunk_index,
-                    "score": result.similarity_score,
-                    "chunk_id": result.chunk_id,
-                }
-                chunks.append(chunk)
+            # Format results for the tool output using ChunkResult schema
+            chunks = [result.to_chunk_result() for result in results]
 
             return RetrieveDocumentsOutput(chunks=chunks, total_results=len(chunks))
-        except Exception as e:
+        except Exception:
             return RetrieveDocumentsOutput(
-                chunks=[
-                    {
-                        "content": f"Retrieval failed: {str(e)}",
-                        "source": "system",
-                        "score": 0.0,
-                    }
-                ],
+                chunks=[],
                 total_results=0,
             )
 
@@ -155,24 +108,46 @@ class SemanticQueryLayer(Configurable):
 
         self.retrieval_tool = RetrieveDocumentsTool(self.retriever_service)
 
-    def _extract_sources(self, retrieval_result):
+    def _extract_sources(
+        self, retrieval_result: RetrieveDocumentsOutput
+    ) -> List[SourceMetadata]:
+        """Extract source metadata from retrieval results.
+
+        Args:
+            retrieval_result: Output from document retrieval
+
+        Returns:
+            List of SourceMetadata objects for query response
+        """
         sources = []
         if retrieval_result.chunks:
             for chunk in retrieval_result.chunks:
-                source: Dict[str, Any] = {
-                    "source": chunk.get("source", "Unknown"),
-                    "content": chunk.get("content", "")[:200],  # Truncate for display
-                    "score": chunk.get("score", 0.0),
-                    "chunk_index": chunk.get("chunk_index", 0),
-                }
+                source = SourceMetadata(
+                    source=chunk.source,
+                    content=chunk.content[:200],  # Truncate for display
+                    score=chunk.score,
+                    chunk_index=chunk.chunk_index,
+                    chunk_id=chunk.chunk_id,
+                    thumbnail=chunk.thumbnail,
+                    document_checksum=chunk.document_checksum,
+                    token_count=chunk.token_count,
+                )
                 sources.append(source)
         return sources
 
-    def _calculate_confidence(self, sources: List[Dict[str, Any]]) -> float:
+    def _calculate_confidence(self, sources: List[SourceMetadata]) -> float:
+        """Calculate confidence score based on retrieval results.
+
+        Args:
+            sources: List of source metadata from retrieval
+
+        Returns:
+            Confidence score between 0.0 and 1.0
+        """
         if not sources:
             return 0.0
 
-        max_score = max(source.get("score", 0.0) for source in sources)
+        max_score = max(source.score for source in sources)
         source_bonus: float = min(len(sources) * 0.1, 0.3)
 
         return min(max_score + source_bonus, 1.0)
@@ -202,7 +177,7 @@ class SemanticQueryLayer(Configurable):
 
             if sources:
                 context = "\n\n".join(
-                    [chunk.get("content", "") for chunk in retrieval_result.chunks]
+                    [chunk.content for chunk in retrieval_result.chunks]
                 )
 
                 try:
@@ -243,7 +218,10 @@ the question, clearly state this limitation.""",
                         final_answer: str = response.chat_message.content
 
                 except Exception as e:
-                    # Fallback to a simple context-based response if agent fails
+                    # If this is a model client error (during load_component), propagate it
+                    if "Model client error" in str(e):
+                        raise e
+                    # Otherwise, fallback to a simple context-based response if agent fails
                     final_answer = (
                         f"Based on the retrieved information: {context[:500]}..."
                     )

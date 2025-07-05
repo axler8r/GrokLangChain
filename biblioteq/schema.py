@@ -6,7 +6,9 @@ for data schemas.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any, Dict, List
+
+from pydantic import BaseModel, Field
 
 
 @dataclass
@@ -101,6 +103,143 @@ class RetrievalResult:
             similarity_score=similarity_score,
             token_count=chunk_record.token_count,
         )
+
+    def to_chunk_result(self) -> "ChunkResult":
+        """Convert RetrievalResult to ChunkResult for semantic query processing.
+
+        Returns:
+            ChunkResult instance suitable for tool output
+        """
+        return ChunkResult(
+            content=self.text,
+            source=self.document_title,
+            chunk_index=self.chunk_index,
+            score=self.similarity_score,
+            chunk_id=self.chunk_id,
+            thumbnail=self.thumbnail,
+            document_checksum=self.document_checksum,
+            token_count=self.token_count,
+        )
+
+    def to_source_metadata(
+        self, content_truncate_length: int = 200
+    ) -> "SourceMetadata":
+        """Convert RetrievalResult to SourceMetadata for query response.
+
+        Args:
+            content_truncate_length: Maximum length for content preview
+
+        Returns:
+            SourceMetadata instance for query response
+        """
+        return SourceMetadata(
+            source=self.document_title,
+            content=self.text[:content_truncate_length],
+            score=self.similarity_score,
+            chunk_index=self.chunk_index,
+            chunk_id=self.chunk_id,
+            thumbnail=self.thumbnail,
+            document_checksum=self.document_checksum,
+            token_count=self.token_count,
+        )
+
+
+@dataclass
+class ChunkResult:
+    """Standardized chunk data format used in semantic query processing.
+
+    This represents chunk data as it flows through the semantic query layer,
+    with consistent field names and structure.
+    """
+
+    content: str
+    source: str  # document_title
+    chunk_index: int
+    score: float
+    chunk_id: str
+    thumbnail: str
+    document_checksum: str
+    token_count: int
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary format for tool output.
+
+        Returns:
+            Dictionary representation suitable for tool responses
+        """
+        return {
+            "content": self.content,
+            "source": self.source,
+            "chunk_index": self.chunk_index,
+            "score": self.score,
+            "chunk_id": self.chunk_id,
+            "thumbnail": self.thumbnail,
+            "document_checksum": self.document_checksum,
+            "token_count": self.token_count,
+        }
+
+
+@dataclass
+class SourceMetadata:
+    """Metadata for a source document chunk in query results.
+
+    This represents the source information returned to the frontend,
+    including truncated content for display purposes.
+    """
+
+    source: str
+    content: str  # Truncated for display
+    score: float
+    chunk_index: int
+    chunk_id: str
+    thumbnail: str
+    document_checksum: str
+    token_count: int
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary format for query response.
+
+        Returns:
+            Dictionary representation suitable for frontend consumption
+        """
+        return {
+            "source": self.source,
+            "content": self.content,
+            "score": self.score,
+            "chunk_index": self.chunk_index,
+            "chunk_id": self.chunk_id,
+            "thumbnail": self.thumbnail,
+            "document_checksum": self.document_checksum,
+            "token_count": self.token_count,
+        }
+
+
+@dataclass
+class QueryResponse:
+    """Response from a semantic query.
+
+    This represents the complete response from the semantic query layer,
+    including the generated answer, source metadata, confidence score,
+    and additional processing metadata.
+    """
+
+    answer: str
+    sources: List[SourceMetadata]
+    confidence: float
+    metadata: Dict[str, Any]
+
+
+class RetrieveDocumentsInput(BaseModel):
+    """Input schema for document retrieval."""
+
+    query: str = Field(description="The search query to find relevant document chunks")
+
+
+class RetrieveDocumentsOutput(BaseModel):
+    """Output schema for document retrieval."""
+
+    chunks: List[ChunkResult] = Field(description="List of relevant document chunks")
+    total_results: int = Field(description="Total number of results found")
 
 
 @dataclass
