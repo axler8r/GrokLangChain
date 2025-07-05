@@ -13,6 +13,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from biblioteq.loader import Loader
+from biblioteq.schema import ChunkRecord, EmbeddingMetadata
 
 
 @pytest.fixture
@@ -267,33 +268,55 @@ class TestLoader:
                 f"Embedding for chunk {i} should be 1536 dimensions"
             )
 
-            # Verify chunk data structure (what would be stored in MongoDB)
-            chunk_data = {
-                "_id": chunk_id,
-                "document_title": document_title,
-                "document_checksum": document_checksum,
-                "thumbnail": "mock_thumbnail_base64_string",
-                "chunk_index": i,
-                "text": chunk,
-                "token_count": len(create_mock_loader.tokenizer.encode(chunk)),
-            }
+            # Verify chunk data structure (what would be stored in MongoDB via ChunkRecord)
+            expected_chunk_record = ChunkRecord(
+                chunk_id=chunk_id,
+                document_title=document_title,
+                document_checksum=document_checksum,
+                thumbnail="mock_thumbnail_base64_string",
+                chunk_index=i,
+                text=chunk,
+                token_count=len(create_mock_loader.tokenizer.encode(chunk)),
+            )
 
-            assert chunk_data["_id"] == chunk_id, "Chunk data should have correct ID"
-            assert chunk_data["document_title"] == document_title, (
-                "Chunk data should have correct document title"
+            # Verify the ChunkRecord structure
+            assert expected_chunk_record.chunk_id == chunk_id, "ChunkRecord should have correct ID"
+            assert expected_chunk_record.document_title == document_title, (
+                "ChunkRecord should have correct document title"
             )
-            assert chunk_data["document_checksum"] == document_checksum, (
-                "Chunk data should have correct document checksum"
+            assert expected_chunk_record.document_checksum == document_checksum, (
+                "ChunkRecord should have correct document checksum"
             )
-            assert chunk_data["thumbnail"] == "mock_thumbnail_base64_string", (
-                "Chunk data should have correct thumbnail"
+            assert expected_chunk_record.thumbnail == "mock_thumbnail_base64_string", (
+                "ChunkRecord should have correct thumbnail"
             )
-            assert chunk_data["chunk_index"] == i, (
-                "Chunk data should have correct index"
+            assert expected_chunk_record.chunk_index == i, (
+                "ChunkRecord should have correct index"
             )
-            assert chunk_data["text"] == chunk, "Chunk data should have correct text"
-            assert chunk_data["token_count"] > 0, (
-                "Chunk data should have positive token count"
+            assert expected_chunk_record.text == chunk, "ChunkRecord should have correct text"
+            assert expected_chunk_record.token_count > 0, (
+                "ChunkRecord should have positive token count"
+            )
+
+            # Verify EmbeddingMetadata structure
+            expected_metadata = EmbeddingMetadata(
+                document_title=document_title,
+                document_checksum=document_checksum,
+                chunk_index=i,
+                token_count=expected_chunk_record.token_count,
+            )
+            
+            assert expected_metadata.document_title == document_title, (
+                "EmbeddingMetadata should have correct document title"
+            )
+            assert expected_metadata.document_checksum == document_checksum, (
+                "EmbeddingMetadata should have correct document checksum"
+            )
+            assert expected_metadata.chunk_index == i, (
+                "EmbeddingMetadata should have correct chunk index"
+            )
+            assert expected_metadata.token_count > 0, (
+                "EmbeddingMetadata should have positive token count"
             )
 
     def test_tokenizer_initialization(self, create_mock_loader: Loader) -> None:
@@ -425,23 +448,30 @@ class TestLoader:
         # Verify the stored data has correct structure
         stored_chunk_calls = mock_store_mongo.call_args_list
         for call in stored_chunk_calls:
-            chunk_data = call[0][0]  # First argument of the call
-
-            # Check required fields are present
-            assert "_id" in chunk_data
-            assert "document_title" in chunk_data
-            assert "document_checksum" in chunk_data
-            assert "thumbnail" in chunk_data
-            assert "chunk_index" in chunk_data
-            assert "text" in chunk_data
-            assert "token_count" in chunk_data
-
-            # Check field types and values
-            assert isinstance(chunk_data["_id"], str)
-            assert chunk_data["document_title"] == document_name
-            assert isinstance(chunk_data["document_checksum"], str)
-            assert len(chunk_data["document_checksum"]) == 32  # MD5 length
-            assert isinstance(chunk_data["chunk_index"], int)
-            assert isinstance(chunk_data["text"], str)
-            assert isinstance(chunk_data["token_count"], int)
-            assert chunk_data["token_count"] > 0
+            chunk_record = call[0][0]  # First argument should be a ChunkRecord
+            
+            # Verify it's a ChunkRecord instance
+            assert isinstance(chunk_record, ChunkRecord), "Should store ChunkRecord objects"
+            
+            # Check field values
+            assert isinstance(chunk_record.chunk_id, str)
+            assert chunk_record.document_title == document_name
+            assert isinstance(chunk_record.document_checksum, str)
+            assert len(chunk_record.document_checksum) == 32  # MD5 length
+            assert isinstance(chunk_record.chunk_index, int)
+            assert isinstance(chunk_record.text, str)
+            assert isinstance(chunk_record.token_count, int)
+            assert chunk_record.token_count > 0
+            
+        # Verify the Qdrant storage calls
+        stored_qdrant_calls = mock_store_qdrant.call_args_list
+        for call in stored_qdrant_calls:
+            chunk_id = call[0][0]  # First argument: chunk_id
+            embedding = call[0][1]  # Second argument: embedding vector
+            metadata = call[0][2]  # Third argument: EmbeddingMetadata
+            
+            assert isinstance(chunk_id, str)
+            assert isinstance(embedding, list)
+            assert len(embedding) == 1536  # OpenAI embedding dimension
+            assert isinstance(metadata, EmbeddingMetadata), "Should store EmbeddingMetadata objects"
+            assert metadata.document_title == document_name
