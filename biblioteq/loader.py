@@ -5,14 +5,18 @@ manageable pieces, storing the chunks in MongoDB, encoding them with OpenAI
 embeddings, and storing the vector embeddings in Qdrant.
 """
 
+import base64
 import hashlib
+import io
 from pathlib import Path
 from typing import Any, Dict, List
 
 import openai
 import pypdf
 import tiktoken
+from PIL import Image
 from openai.types.create_embedding_response import CreateEmbeddingResponse
+from pdf2image import convert_from_path
 from pymongo import MongoClient
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
@@ -21,14 +25,19 @@ from biblioteq.config import Configurable
 
 
 class Loader(Configurable):
-    """Index PDF files.
+    """Index PDF files using content-based checksums.
 
     This class handles the complete pipeline of PDF processing:
     1. Reading PDF files from a directory
-    2. Extracting text and chunking into 512 tokens with 64 token overlap
-    3. Storing chunks in MongoDB
-    4. Encoding chunks with OpenAI Ada 002 embeddings
-    5. Storing vector embeddings in Qdrant
+    2. Generating MD5 checksums for content-based deduplication
+    3. Creating thumbnails from the first page of each PDF
+    4. Extracting text and chunking into 512 tokens with 64 token overlap
+    5. Storing chunks in MongoDB with document metadata
+    6. Encoding chunks with OpenAI Ada 002 embeddings
+    7. Storing vector embeddings in Qdrant with consistent IDs
+
+    Chunk IDs are generated from document checksums, ensuring consistent
+    identification regardless of file location or name changes.
     """
 
     def __init__(
@@ -74,6 +83,23 @@ class Loader(Configurable):
                 vectors_config=VectorParams(size=1536, distance=Distance.COSINE),
             )
 
+    def _create_thumbnail(self, pdf_path: Path) -> str:
+        pages: List[Image.Image] = convert_from_path(
+            pdf_path, first_page=1, last_page=1
+        )
+        if pages:
+            output = io.BytesIO()
+
+            first_page: Image.Image = pages[0]
+            first_page.thumbnail(size=(160, 160), resample=Image.Resampling.LANCZOS)
+            first_page.save(output, "PNG")
+
+            output.seek(0)
+
+            return base64.b64encode(output.read()).decode("utf-8")
+        else:
+            raise ValueError(f"No pages found in PDF: {pdf_path}")
+
     def _extract_text_from_pdf(self, pdf_path: Path) -> str:
         text: str = ""
         with open(pdf_path, "rb") as file:
@@ -100,8 +126,15 @@ class Loader(Configurable):
 
         return chunks
 
-    def _generate_chunk_id(self, file_path: str, chunk_index: int) -> str:
-        content: str = f"{file_path}:{chunk_index}"
+    def _generate_document_checksum(self, pdf_path: Path) -> str:
+        hasher = hashlib.md5()
+        with open(pdf_path, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hasher.update(chunk)
+        return hasher.hexdigest()
+
+    def _generate_chunk_id(self, document_checksum: str, chunk_index: int) -> str:
+        content: str = f"{document_checksum}:{chunk_index}"
         return hashlib.md5(content.encode()).hexdigest()
 
     def _store_chunk_in_mongo(self, chunk_data: Dict[str, Any]) -> None:
@@ -121,12 +154,21 @@ class Loader(Configurable):
             collection_name=self.qdrant_collection, points=[point]
         )
 
-    def _index_chunk(self, chunk, pdf_path: Path, index: int) -> None:
-        chunk_id: str = self._generate_chunk_id(str(pdf_path), index)
+    def _index_chunk(
+        self,
+        chunk: str,
+        document_checksum: str,
+        document_title: str,
+        thumbnail: str,
+        index: int,
+    ) -> None:
+        chunk_id: str = self._generate_chunk_id(document_checksum, index)
 
         chunk_record = {
             "_id": chunk_id,
-            "source_file": str(pdf_path),
+            "document_title": document_title,
+            "document_checksum": document_checksum,
+            "thumbnail": thumbnail,
             "chunk_index": index,
             "text": chunk,
             "token_count": len(self.tokenizer.encode(chunk)),
@@ -135,17 +177,19 @@ class Loader(Configurable):
 
         embedding: List[float] = self._get_embedding(chunk)
         embedding_record = {
-            "source_file": str(pdf_path),
+            "document_title": document_title,
+            "document_checksum": document_checksum,
             "chunk_index": index,
             "token_count": chunk_record["token_count"],
         }
         self._store_embedding_in_qdrant(chunk_id, embedding, embedding_record)
 
-    def process_pdf_file(self, pdf_path: Path) -> int:
+    def process_pdf_file(self, pdf_path: Path, document_name: str) -> int:
         """Process a single PDF file through the complete pipeline.
 
         Args:
             pdf_path: Path to the PDF file to process
+            document_name: Name of the document (used for indexing)
 
         Returns:
             Number of chunks processed
@@ -153,16 +197,14 @@ class Loader(Configurable):
         Raises:
             Exception: If processing fails at any stage
         """
-        # Extract text from PDF
+        document_checksum: str = self._generate_document_checksum(pdf_path)
+        thumbnail: str = self._create_thumbnail(pdf_path)
         text: str = self._extract_text_from_pdf(pdf_path)
-
-        # Chunk the text
         chunks: List[str] = self._chunk_text(text)
 
-        # Index each chunk
         processed_count = 0
         for i, chunk in enumerate(chunks):
-            self._index_chunk(chunk, pdf_path, i)
+            self._index_chunk(chunk, document_checksum, document_name, thumbnail, i)
             processed_count += 1
 
         return processed_count
@@ -189,7 +231,8 @@ class Loader(Configurable):
 
         for pdf_file in pdf_files:
             try:
-                chunk_count = self.process_pdf_file(pdf_file)
+                document_name = pdf_file.stem
+                chunk_count = self.process_pdf_file(pdf_file, document_name)
                 results[str(pdf_file)] = chunk_count
             except Exception as e:
                 print(f"Error processing {pdf_file}: {e}")
