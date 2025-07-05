@@ -68,27 +68,47 @@ class Retriever(Configurable):
         )
         return response.data[0].embedding
 
+    def _convert_uuid_to_md5(self, chunk_id: str) -> str:
+        """Convert UUID format to MD5 format by removing hyphens.
+        
+        This handles potential legacy data where Qdrant might return UUIDs
+        with hyphens but MongoDB stores them without hyphens.
+        
+        Args:
+            chunk_id: Chunk ID potentially in UUID format with hyphens
+            
+        Returns:
+            Chunk ID with hyphens removed
+        """
+        return chunk_id.replace("-", "")
+
     def search(
         self,
         query: str,
+        max_results: int | None = None,
+        min_similarity_threshold: float | None = None,
     ) -> List[RetrievalResult]:
-        """Search for relevant chunks based on a natural language query.
+        """Search for relevant text chunks using vector similarity.
 
         Args:
-            query: Natural language query
+            query: Natural language query string
+            max_results: Maximum number of results to return (uses instance default if None)
+            min_similarity_threshold: Minimum similarity score threshold (uses instance default if None)
 
         Returns:
             List of RetrievalResult objects sorted by similarity score (highest first)
-
-        Raises:
-            Exception: If search fails at any stage
         """
+        # Use instance defaults if parameters not provided
+        max_results = max_results or self.max_results
+        min_similarity_threshold = min_similarity_threshold or self.min_similarity_threshold
 
-        # Get embedding for the query
-        try:
-            query_vector: List[float] = self._get_query_embedding(query)
-        except Exception as e:
-            print(f"Error generating embedding: {e}")
+        # Generate embedding for the query
+        query_vector = self._get_query_embedding(query)
+        if not query_vector:
+            return []
+
+        # Handle empty query
+        if not query.strip():
             return []
 
         # Perform vector search in Qdrant
@@ -97,7 +117,7 @@ class Retriever(Configurable):
             search_results: List[ScoredPoint] = self.qdrant_client.query_points(
                 collection_name=self.qdrant_collection,
                 query=query_vector,
-                limit=self.max_results,
+                limit=max_results,
             ).points
 
         except Exception as e:
@@ -111,11 +131,14 @@ class Retriever(Configurable):
             similarity_score: float = scored_point.score
 
             # Apply threshold filtering here instead of at Qdrant level
-            if similarity_score < self.min_similarity_threshold:
+            if similarity_score < min_similarity_threshold:
                 continue
 
-            # Get chunk data from MongoDB using the chunk ID directly
-            chunk_doc = self.mongo_collection.find_one({"_id": chunk_id})
+            # Convert UUID format to MD5 format if needed (remove hyphens)
+            mongo_chunk_id = self._convert_uuid_to_md5(chunk_id)
+
+            # Get chunk data from MongoDB using the converted chunk ID
+            chunk_doc = self.mongo_collection.find_one({"_id": mongo_chunk_id})
             if chunk_doc:
                 # Convert MongoDB document to ChunkRecord
                 chunk_record = ChunkRecord.from_mongo_dict(chunk_doc)
