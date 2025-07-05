@@ -140,7 +140,7 @@ class Loader(Configurable):
 
     def _store_chunk_in_mongo(self, chunk_record: ChunkRecord) -> None:
         """Store a chunk record in MongoDB.
-        
+
         Args:
             chunk_record: ChunkRecord instance to store
         """
@@ -156,13 +156,15 @@ class Loader(Configurable):
         self, chunk_id: str, vector: List[float], metadata: EmbeddingMetadata
     ) -> None:
         """Store vector embedding in Qdrant with metadata.
-        
+
         Args:
             chunk_id: Unique identifier for the chunk
             vector: Embedding vector
             metadata: EmbeddingMetadata instance
         """
-        point = PointStruct(id=chunk_id, vector=vector, payload=metadata.to_qdrant_payload())
+        point = PointStruct(
+            id=chunk_id, vector=vector, payload=metadata.to_qdrant_payload()
+        )
         self.qdrant_client.upsert(
             collection_name=self.qdrant_collection, points=[point]
         )
@@ -176,7 +178,7 @@ class Loader(Configurable):
         index: int,
     ) -> None:
         """Index a single chunk in both MongoDB and Qdrant.
-        
+
         Args:
             chunk: Text content of the chunk
             document_checksum: MD5 checksum of the source document

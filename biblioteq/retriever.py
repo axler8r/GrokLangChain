@@ -70,13 +70,13 @@ class Retriever(Configurable):
 
     def _convert_uuid_to_md5(self, chunk_id: str) -> str:
         """Convert UUID format to MD5 format by removing hyphens.
-        
+
         This handles potential legacy data where Qdrant might return UUIDs
         with hyphens but MongoDB stores them without hyphens.
-        
+
         Args:
             chunk_id: Chunk ID potentially in UUID format with hyphens
-            
+
         Returns:
             Chunk ID with hyphens removed
         """
@@ -100,7 +100,9 @@ class Retriever(Configurable):
         """
         # Use instance defaults if parameters not provided
         max_results = max_results or self.max_results
-        min_similarity_threshold = min_similarity_threshold or self.min_similarity_threshold
+        min_similarity_threshold = (
+            min_similarity_threshold or self.min_similarity_threshold
+        )
 
         # Generate embedding for the query
         query_vector = self._get_query_embedding(query)
@@ -142,9 +144,11 @@ class Retriever(Configurable):
             if chunk_doc:
                 # Convert MongoDB document to ChunkRecord
                 chunk_record = ChunkRecord.from_mongo_dict(chunk_doc)
-                
+
                 # Create RetrievalResult with similarity score
-                result = RetrievalResult.from_chunk_record(chunk_record, similarity_score)
+                result = RetrievalResult.from_chunk_record(
+                    chunk_record, similarity_score
+                )
                 results.append(result)
 
         return results

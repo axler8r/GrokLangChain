@@ -16,6 +16,7 @@ from biblioteq.semql import SemanticQueryLayer
 
 class QueryService:
     """Service for handling document queries with async/sync coordination."""
+
     def __init__(self) -> None:
         """Initialize the query service."""
         self.configuration = Configuration.get_instance()

@@ -280,7 +280,9 @@ class TestLoader:
             )
 
             # Verify the ChunkRecord structure
-            assert expected_chunk_record.chunk_id == chunk_id, "ChunkRecord should have correct ID"
+            assert expected_chunk_record.chunk_id == chunk_id, (
+                "ChunkRecord should have correct ID"
+            )
             assert expected_chunk_record.document_title == document_title, (
                 "ChunkRecord should have correct document title"
             )
@@ -293,7 +295,9 @@ class TestLoader:
             assert expected_chunk_record.chunk_index == i, (
                 "ChunkRecord should have correct index"
             )
-            assert expected_chunk_record.text == chunk, "ChunkRecord should have correct text"
+            assert expected_chunk_record.text == chunk, (
+                "ChunkRecord should have correct text"
+            )
             assert expected_chunk_record.token_count > 0, (
                 "ChunkRecord should have positive token count"
             )
@@ -305,7 +309,7 @@ class TestLoader:
                 chunk_index=i,
                 token_count=expected_chunk_record.token_count,
             )
-            
+
             assert expected_metadata.document_title == document_title, (
                 "EmbeddingMetadata should have correct document title"
             )
@@ -449,10 +453,12 @@ class TestLoader:
         stored_chunk_calls = mock_store_mongo.call_args_list
         for call in stored_chunk_calls:
             chunk_record = call[0][0]  # First argument should be a ChunkRecord
-            
+
             # Verify it's a ChunkRecord instance
-            assert isinstance(chunk_record, ChunkRecord), "Should store ChunkRecord objects"
-            
+            assert isinstance(chunk_record, ChunkRecord), (
+                "Should store ChunkRecord objects"
+            )
+
             # Check field values
             assert isinstance(chunk_record.chunk_id, str)
             assert chunk_record.document_title == document_name
@@ -462,16 +468,18 @@ class TestLoader:
             assert isinstance(chunk_record.text, str)
             assert isinstance(chunk_record.token_count, int)
             assert chunk_record.token_count > 0
-            
+
         # Verify the Qdrant storage calls
         stored_qdrant_calls = mock_store_qdrant.call_args_list
         for call in stored_qdrant_calls:
             chunk_id = call[0][0]  # First argument: chunk_id
             embedding = call[0][1]  # Second argument: embedding vector
             metadata = call[0][2]  # Third argument: EmbeddingMetadata
-            
+
             assert isinstance(chunk_id, str)
             assert isinstance(embedding, list)
             assert len(embedding) == 1536  # OpenAI embedding dimension
-            assert isinstance(metadata, EmbeddingMetadata), "Should store EmbeddingMetadata objects"
+            assert isinstance(metadata, EmbeddingMetadata), (
+                "Should store EmbeddingMetadata objects"
+            )
             assert metadata.document_title == document_name
