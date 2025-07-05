@@ -45,7 +45,7 @@ dmypy.json
 .ruff_cache/
 
 # user
-/data
+data/
 **/*.original
 tags*
-
+notebook/

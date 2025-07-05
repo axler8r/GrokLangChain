@@ -5,19 +5,7 @@ Main Streamlit application entry point for the BiblioTeq document management
 and intelligent query system.
 """
 
-import sys
-from pathlib import Path
 import streamlit as st
-
-# Add project root to Python path if running directly
-if __name__ == "__main__":
-    try:
-        project_root = Path(__file__).parent.parent.parent.parent
-        sys.path.insert(0, str(project_root))
-    except NameError:
-        # Handle case where __file__ is not defined (e.g., exec scenarios)
-        project_root = Path(".").resolve()
-        sys.path.insert(0, str(project_root))
 
 from biblioteq.ui.web.components import apply_stylesheet, render_header
 from biblioteq.ui.web.pages import render_load_section, render_query_section
