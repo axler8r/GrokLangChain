@@ -111,14 +111,6 @@ class SemanticQueryLayer(Configurable):
     def _extract_sources(
         self, retrieval_result: RetrieveDocumentsOutput
     ) -> List[SourceMetadata]:
-        """Extract source metadata from retrieval results.
-
-        Args:
-            retrieval_result: Output from document retrieval
-
-        Returns:
-            List of SourceMetadata objects for query response
-        """
         sources = []
         if retrieval_result.chunks:
             for chunk in retrieval_result.chunks:
@@ -136,14 +128,6 @@ class SemanticQueryLayer(Configurable):
         return sources
 
     def _calculate_confidence(self, sources: List[SourceMetadata]) -> float:
-        """Calculate confidence score based on retrieval results.
-
-        Args:
-            sources: List of source metadata from retrieval
-
-        Returns:
-            Confidence score between 0.0 and 1.0
-        """
         if not sources:
             return 0.0
 

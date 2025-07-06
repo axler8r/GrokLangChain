@@ -139,11 +139,6 @@ class Loader(Configurable):
         return hashlib.md5(content.encode()).hexdigest()
 
     def _store_chunk_in_mongo(self, chunk_record: ChunkRecord) -> None:
-        """Store a chunk record in MongoDB.
-
-        Args:
-            chunk_record: ChunkRecord instance to store
-        """
         self.mongo_collection.insert_one(chunk_record.to_mongo_dict())
 
     def _get_embedding(self, text: str) -> List[float]:
@@ -155,13 +150,6 @@ class Loader(Configurable):
     def _store_embedding_in_qdrant(
         self, chunk_id: str, vector: List[float], metadata: EmbeddingMetadata
     ) -> None:
-        """Store vector embedding in Qdrant with metadata.
-
-        Args:
-            chunk_id: Unique identifier for the chunk
-            vector: Embedding vector
-            metadata: EmbeddingMetadata instance
-        """
         point = PointStruct(
             id=chunk_id, vector=vector, payload=metadata.to_qdrant_payload()
         )
@@ -177,15 +165,6 @@ class Loader(Configurable):
         thumbnail: str,
         index: int,
     ) -> None:
-        """Index a single chunk in both MongoDB and Qdrant.
-
-        Args:
-            chunk: Text content of the chunk
-            document_checksum: MD5 checksum of the source document
-            document_title: Title of the document
-            thumbnail: Base64-encoded thumbnail
-            index: Index of the chunk within the document
-        """
         chunk_id: str = self._generate_chunk_id(document_checksum, index)
         token_count = len(self.tokenizer.encode(chunk))
 

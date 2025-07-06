@@ -5,6 +5,7 @@ WORKDIR /app
 RUN apt update \
     && apt install --yes --no-install-recommends \
         curl \
+        poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install dependencies

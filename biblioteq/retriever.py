@@ -69,17 +69,6 @@ class Retriever(Configurable):
         return response.data[0].embedding
 
     def _convert_uuid_to_md5(self, chunk_id: str) -> str:
-        """Convert UUID format to MD5 format by removing hyphens.
-
-        This handles potential legacy data where Qdrant might return UUIDs
-        with hyphens but MongoDB stores them without hyphens.
-
-        Args:
-            chunk_id: Chunk ID potentially in UUID format with hyphens
-
-        Returns:
-            Chunk ID with hyphens removed
-        """
         return chunk_id.replace("-", "")
 
     def search(

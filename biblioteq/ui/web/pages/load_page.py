@@ -2,7 +2,7 @@
 
 import tempfile
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
@@ -37,8 +37,7 @@ def render_load_section() -> None:
         st.markdown("</div>", unsafe_allow_html=True)
 
 
-def _process_uploaded_files(uploaded_files) -> None:
-    """Process the uploaded PDF files."""
+def _process_uploaded_files(uploaded_files: List) -> None:
     try:
         loader = Loader()
         progress_bar: DeltaGenerator = st.progress(0)
@@ -53,7 +52,8 @@ def _process_uploaded_files(uploaded_files) -> None:
                 tmp_path = Path(tmp_file.name)
 
             try:
-                chunk_count = loader.process_pdf_file(tmp_path)
+                document_name = Path(uploaded_file.name).stem
+                chunk_count = loader.process_pdf_file(tmp_path, document_name)
                 results[uploaded_file.name] = chunk_count
             finally:
                 tmp_path.unlink(missing_ok=True)
@@ -69,9 +69,8 @@ def _process_uploaded_files(uploaded_files) -> None:
 
 
 def _display_processing_results(
-    uploaded_files, results: Dict[str, int], status_text: DeltaGenerator
+    uploaded_files: List, results: Dict[str, int], status_text: DeltaGenerator
 ) -> None:
-    """Display the results of document processing."""
     status_text.text("Processing complete!")
     st.success(f"Successfully processed {len(uploaded_files)} document(s)")
 

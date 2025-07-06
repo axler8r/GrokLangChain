@@ -1,7 +1,10 @@
 """Document query page implementation."""
 
+import base64
+
 import streamlit as st
 
+from biblioteq.schema import QueryResponse
 from biblioteq.ui.web.services.query_service import QueryService
 
 
@@ -29,7 +32,6 @@ def render_query_section() -> None:
 
 
 def _process_query(query: str) -> None:
-    """Process the user's query."""
     with st.spinner("Searching your library..."):
         query_service = QueryService()
         result, error = query_service.process_query(query)
@@ -44,7 +46,6 @@ def _process_query(query: str) -> None:
 
 
 def _display_query_results() -> None:
-    """Display query results from session state."""
     if hasattr(st.session_state, "query_error") and st.session_state.query_error:
         st.error(f"Query failed: {st.session_state.query_error}")
 
@@ -58,8 +59,7 @@ def _display_query_results() -> None:
         _display_query_sources(result)
 
 
-def _display_query_metadata(result) -> None:
-    """Display query result metadata."""
+def _display_query_metadata(result: QueryResponse) -> None:
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Confidence", f"{result.confidence:.1%}")
@@ -69,11 +69,43 @@ def _display_query_metadata(result) -> None:
         st.metric("Sources", len(result.sources))
 
 
-def _display_query_sources(result) -> None:
-    """Display query result sources."""
+def _display_query_sources(result: QueryResponse) -> None:
+    """Display query result sources with thumbnails.
+
+    Args:
+        result: The QueryResponse object containing sources to display
+    """
     if result.sources:
         with st.expander("View Sources"):
             for i, source in enumerate(result.sources, 1):
-                st.markdown(f"**Source {i}:** {source.get('source', 'Unknown')}")
-                st.text(source.get("content", "No content")[:200] + "...")
-                st.markdown("---")
+                # Create columns for thumbnail and content
+                col1, col2 = st.columns([1, 4])
+
+                with col1:
+                    # Display thumbnail if available
+                    if source.thumbnail:
+                        try:
+                            # Decode base64 thumbnail and display
+                            thumbnail_data = base64.b64decode(source.thumbnail)
+                            st.image(
+                                thumbnail_data,
+                                width=80,
+                                caption=f"Page {source.chunk_index + 1}",
+                            )
+                        except Exception:
+                            # Fallback if thumbnail can't be displayed
+                            st.text("📄")
+                    else:
+                        st.text("📄")
+
+                with col2:
+                    # Display source information
+                    st.markdown(f"**Source {i}:** {source.source}")
+                    st.text(source.content[:200] + "...")
+                    st.caption(
+                        f"Relevance: {source.score:.1%} • Chunk {source.chunk_index + 1}"
+                    )
+
+                # Add separator between sources (except for the last one)
+                if i < len(result.sources):
+                    st.markdown("---")
