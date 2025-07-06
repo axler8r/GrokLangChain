@@ -11,6 +11,7 @@ from qdrant_client import QdrantClient
 
 from biblioteq.config import Configuration
 from biblioteq.retriever import Retriever
+from biblioteq.schema import QueryResponse
 from biblioteq.semql import SemanticQueryLayer
 
 
@@ -42,15 +43,30 @@ class QueryService:
             st.error(f"Failed to initialize query system: {str(e)}")
             return None
 
-    async def _process_query_async(self, semql: SemanticQueryLayer, query: str) -> Any:
-        """Process a query asynchronously using the SemanticQueryLayer."""
+    async def _process_query_async(self, semql: SemanticQueryLayer, query: str) -> QueryResponse:
+        """Process a query asynchronously using the SemanticQueryLayer.
+        
+        Args:
+            semql: The SemanticQueryLayer instance
+            query: The user's query string
+            
+        Returns:
+            QueryResponse object containing the answer, sources, and metadata
+        """
         try:
             return await semql.query(query)
         except Exception as e:
             raise e
 
-    def process_query(self, query: str) -> Tuple[Any, Optional[str]]:
-        """Process a query synchronously with proper async/sync coordination."""
+    def process_query(self, query: str) -> Tuple[Optional[QueryResponse], Optional[str]]:
+        """Process a query synchronously with proper async/sync coordination.
+        
+        Args:
+            query: The user's natural language query
+            
+        Returns:
+            Tuple of (QueryResponse or None, error message or None)
+        """
         semql = self._initialize_semql()
         if semql is None:
             return None, "Failed to initialize query system"
@@ -68,8 +84,16 @@ class QueryService:
 
     def _run_in_thread(
         self, semql: SemanticQueryLayer, query: str
-    ) -> Tuple[Any, Optional[str]]:
-        """Run query in a separate thread when event loop exists."""
+    ) -> Tuple[Optional[QueryResponse], Optional[str]]:
+        """Run query in a separate thread when event loop exists.
+        
+        Args:
+            semql: The SemanticQueryLayer instance
+            query: The user's query string
+            
+        Returns:
+            Tuple of (QueryResponse or None, error message or None)
+        """
         result_container: Dict[str, Any] = {"result": None, "error": None}
 
         def run_async() -> None:
@@ -96,8 +120,16 @@ class QueryService:
 
     def _run_in_new_loop(
         self, semql: SemanticQueryLayer, query: str
-    ) -> Tuple[Any, Optional[str]]:
-        """Run query in a new event loop when none exists."""
+    ) -> Tuple[Optional[QueryResponse], Optional[str]]:
+        """Run query in a new event loop when none exists.
+        
+        Args:
+            semql: The SemanticQueryLayer instance
+            query: The user's query string
+            
+        Returns:
+            Tuple of (QueryResponse or None, error message or None)
+        """
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
@@ -107,7 +139,11 @@ class QueryService:
             self._cleanup_event_loop(loop)
 
     def _cleanup_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
-        """Clean up pending tasks and close the event loop."""
+        """Clean up pending tasks and close the event loop.
+        
+        Args:
+            loop: The event loop to clean up
+        """
         pending: set[Task[Any]] = asyncio.all_tasks(loop)
         for task in pending:
             task.cancel()

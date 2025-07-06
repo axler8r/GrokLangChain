@@ -1,7 +1,10 @@
 """Document query page implementation."""
 
+from typing import Optional
+
 import streamlit as st
 
+from biblioteq.schema import QueryResponse, SourceMetadata
 from biblioteq.ui.web.services.query_service import QueryService
 
 
@@ -29,7 +32,11 @@ def render_query_section() -> None:
 
 
 def _process_query(query: str) -> None:
-    """Process the user's query."""
+    """Process the user's query.
+    
+    Args:
+        query: The natural language query from the user
+    """
     with st.spinner("Searching your library..."):
         query_service = QueryService()
         result, error = query_service.process_query(query)
@@ -58,8 +65,12 @@ def _display_query_results() -> None:
         _display_query_sources(result)
 
 
-def _display_query_metadata(result) -> None:
-    """Display query result metadata."""
+def _display_query_metadata(result: QueryResponse) -> None:
+    """Display query result metadata.
+    
+    Args:
+        result: The QueryResponse object containing metadata to display
+    """
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Confidence", f"{result.confidence:.1%}")
@@ -69,11 +80,16 @@ def _display_query_metadata(result) -> None:
         st.metric("Sources", len(result.sources))
 
 
-def _display_query_sources(result) -> None:
-    """Display query result sources."""
+def _display_query_sources(result: QueryResponse) -> None:
+    """Display query result sources.
+    
+    Args:
+        result: The QueryResponse object containing sources to display
+    """
     if result.sources:
         with st.expander("View Sources"):
             for i, source in enumerate(result.sources, 1):
-                st.markdown(f"**Source {i}:** {source.get('source', 'Unknown')}")
-                st.text(source.get("content", "No content")[:200] + "...")
-                st.markdown("---")
+                st.markdown(f"**Source {i}:** {source.source}")
+                st.text(source.content[:200] + "...")
+                if i < len(result.sources):  # Don't add separator after last item
+                    st.markdown("---")
