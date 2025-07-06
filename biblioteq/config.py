@@ -6,8 +6,6 @@ from abc import ABC
 from attr import dataclass
 from dotenv import load_dotenv
 
-load_dotenv()
-
 
 @dataclass
 class Configuration:
@@ -25,6 +23,8 @@ class Configuration:
         openai_encoding_model: OpenAI encoding model name.
         pdf_path: Path to PDF files.
     """
+
+    load_dotenv()
 
     mongo_uri: str = os.getenv("MONGO_URI", "UNDEFINED")
     mongo_db: str = os.getenv("MONGO_DB", "UNDEFINED")
