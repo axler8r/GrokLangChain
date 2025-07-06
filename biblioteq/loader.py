@@ -168,7 +168,6 @@ class Loader(Configurable):
         chunk_id: str = self._generate_chunk_id(document_checksum, index)
         token_count: int = len(self.tokenizer.encode(chunk))
 
-        # Create chunk record for MongoDB
         chunk_record = ChunkRecord(
             chunk_id=chunk_id,
             document_title=document_title,
@@ -180,7 +179,6 @@ class Loader(Configurable):
         )
         self._store_chunk_in_mongo(chunk_record)
 
-        # Create embedding and metadata for Qdrant
         embedding: List[float] = self._get_embedding(chunk)
         embedding_metadata = EmbeddingMetadata(
             document_title=document_title,

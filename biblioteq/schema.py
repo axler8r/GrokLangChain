@@ -19,10 +19,10 @@ class ChunkRecord:
     including all metadata needed for retrieval and display.
     """
 
-    chunk_id: str  # Used as MongoDB _id field
+    chunk_id: str
     document_title: str
     document_checksum: str
-    thumbnail: str  # Base64-encoded thumbnail
+    thumbnail: str
     chunk_index: int
     text: str
     token_count: int

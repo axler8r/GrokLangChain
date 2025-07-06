@@ -86,24 +86,19 @@ class Retriever(Configurable):
         Returns:
             List of RetrievalResult objects sorted by similarity score (highest first)
         """
-        # Use instance defaults if parameters not provided
         max_results = max_results or self.max_results
         min_similarity_threshold = (
             min_similarity_threshold or self.min_similarity_threshold
         )
 
-        # Generate embedding for the query
         query_vector: List[float] = self._get_query_embedding(query)
         if not query_vector:
             return []
 
-        # Handle empty query
         if not query.strip():
             return []
 
-        # Perform vector search in Qdrant
         try:
-            # Don't apply score_threshold at Qdrant level to see raw scores
             search_results: List[ScoredPoint] = self.qdrant_client.query_points(
                 collection_name=self.qdrant_collection,
                 query=query_vector,
@@ -114,26 +109,20 @@ class Retriever(Configurable):
             print(f"Error in Qdrant search: {e}")
             return []
 
-        # Retrieve full chunk data from MongoDB
         results = []
         for scored_point in search_results:
             chunk_id = str(scored_point.id)
             similarity_score: float = scored_point.score
 
-            # Apply threshold filtering here instead of at Qdrant level
             if similarity_score < min_similarity_threshold:
                 continue
 
-            # Convert UUID format to MD5 format if needed (remove hyphens)
             mongo_chunk_id = self._convert_uuid_to_md5(chunk_id)
 
-            # Get chunk data from MongoDB using the converted chunk ID
             chunk_doc = self.mongo_collection.find_one({"_id": mongo_chunk_id})
             if chunk_doc:
-                # Convert MongoDB document to ChunkRecord
                 chunk_record: ChunkRecord = ChunkRecord.from_mongo_dict(chunk_doc)
 
-                # Create RetrievalResult with similarity score
                 result: RetrievalResult = RetrievalResult.from_chunk_record(
                     chunk_record, similarity_score
                 )

@@ -200,12 +200,9 @@ the question, clearly state this limitation.""",
                         response.chat_message, TextMessage
                     ):
                         final_answer: str = response.chat_message.content
-
                 except Exception as e:
-                    # If this is a model client error (during load_component), propagate it
                     if "Model client error" in str(e):
                         raise e
-                    # Otherwise, fallback to a simple context-based response if agent fails
                     final_answer = (
                         f"Based on the retrieved information: {context[:500]}..."
                     )
@@ -225,7 +222,6 @@ the question, clearly state this limitation.""",
                     "retrieval_total": retrieval_result.total_results,
                 },
             )
-
         except Exception as e:
             return QueryResponse(
                 answer=f"I encountered an error while processing your query: {str(e)}",
