@@ -57,7 +57,7 @@ def main() -> None:
             print(f"Processing: {pdf_file.name}")
             try:
                 # Process the PDF file
-                processor.process_pdf_file(pdf_file)
+                processor.process_pdf_file(pdf_file, document_name=pdf_file.stem)
                 print(f"Successfully processed: {pdf_file.name}")
             except Exception as e:
                 print(f"Error processing {pdf_file.name}: {e}")
