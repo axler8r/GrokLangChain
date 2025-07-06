@@ -38,11 +38,6 @@ def render_load_section() -> None:
 
 
 def _process_uploaded_files(uploaded_files: List) -> None:
-    """Process the uploaded PDF files.
-    
-    Args:
-        uploaded_files: List of uploaded PDF files from Streamlit file uploader
-    """
     try:
         loader = Loader()
         progress_bar: DeltaGenerator = st.progress(0)
@@ -76,13 +71,6 @@ def _process_uploaded_files(uploaded_files: List) -> None:
 def _display_processing_results(
     uploaded_files: List, results: Dict[str, int], status_text: DeltaGenerator
 ) -> None:
-    """Display the results of document processing.
-    
-    Args:
-        uploaded_files: List of uploaded files that were processed
-        results: Dictionary mapping filenames to number of chunks created
-        status_text: Streamlit text element for displaying status updates
-    """
     status_text.text("Processing complete!")
     st.success(f"Successfully processed {len(uploaded_files)} document(s)")
 

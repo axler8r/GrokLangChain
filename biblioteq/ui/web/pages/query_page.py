@@ -1,10 +1,8 @@
 """Document query page implementation."""
 
-from typing import Optional
-
 import streamlit as st
 
-from biblioteq.schema import QueryResponse, SourceMetadata
+from biblioteq.schema import QueryResponse
 from biblioteq.ui.web.services.query_service import QueryService
 
 
@@ -32,11 +30,6 @@ def render_query_section() -> None:
 
 
 def _process_query(query: str) -> None:
-    """Process the user's query.
-    
-    Args:
-        query: The natural language query from the user
-    """
     with st.spinner("Searching your library..."):
         query_service = QueryService()
         result, error = query_service.process_query(query)
@@ -51,7 +44,6 @@ def _process_query(query: str) -> None:
 
 
 def _display_query_results() -> None:
-    """Display query results from session state."""
     if hasattr(st.session_state, "query_error") and st.session_state.query_error:
         st.error(f"Query failed: {st.session_state.query_error}")
 
@@ -66,11 +58,6 @@ def _display_query_results() -> None:
 
 
 def _display_query_metadata(result: QueryResponse) -> None:
-    """Display query result metadata.
-    
-    Args:
-        result: The QueryResponse object containing metadata to display
-    """
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Confidence", f"{result.confidence:.1%}")
@@ -81,11 +68,6 @@ def _display_query_metadata(result: QueryResponse) -> None:
 
 
 def _display_query_sources(result: QueryResponse) -> None:
-    """Display query result sources.
-    
-    Args:
-        result: The QueryResponse object containing sources to display
-    """
     if result.sources:
         with st.expander("View Sources"):
             for i, source in enumerate(result.sources, 1):
