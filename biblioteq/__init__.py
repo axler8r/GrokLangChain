@@ -1,11 +1,11 @@
 """Source code for the loader module."""
 
-from .config import Configurable
-from .loader import Loader
-from .retriever import Retriever
-from .semql import SemanticQueryLayer
+from biblioteq.config import Configurable
+from biblioteq.loader import Loader
+from biblioteq.retriever import Retriever
+from biblioteq.semql import SemanticQueryLayer
 
-__all__ = [
+__all__: list[str] = [
     "Configurable",
     "Loader",
     "Retriever",
