@@ -41,7 +41,6 @@ class Retriever(Configurable):
             max_results: Maximum number of results to return (default: 10)
             min_similarity_threshold: Minimum similarity score threshold (default: 0.6)
         """
-
         super().__init__()
 
         self.max_results: int = max_results
@@ -94,7 +93,7 @@ class Retriever(Configurable):
         )
 
         # Generate embedding for the query
-        query_vector = self._get_query_embedding(query)
+        query_vector: List[float] = self._get_query_embedding(query)
         if not query_vector:
             return []
 
@@ -132,10 +131,10 @@ class Retriever(Configurable):
             chunk_doc = self.mongo_collection.find_one({"_id": mongo_chunk_id})
             if chunk_doc:
                 # Convert MongoDB document to ChunkRecord
-                chunk_record = ChunkRecord.from_mongo_dict(chunk_doc)
+                chunk_record: ChunkRecord = ChunkRecord.from_mongo_dict(chunk_doc)
 
                 # Create RetrievalResult with similarity score
-                result = RetrievalResult.from_chunk_record(
+                result: RetrievalResult = RetrievalResult.from_chunk_record(
                     chunk_record, similarity_score
                 )
                 results.append(result)

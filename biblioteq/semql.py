@@ -67,7 +67,7 @@ class RetrieveDocumentsTool(BaseTool[RetrieveDocumentsInput, RetrieveDocumentsOu
                 )
 
             # Format results for the tool output using ChunkResult schema
-            chunks = [result.to_chunk_result() for result in results]
+            chunks: List[Any] = [result.to_chunk_result() for result in results]
 
             return RetrieveDocumentsOutput(chunks=chunks, total_results=len(chunks))
         except Exception:
@@ -131,7 +131,7 @@ class SemanticQueryLayer(Configurable):
         if not sources:
             return 0.0
 
-        max_score = max(source.score for source in sources)
+        max_score: float = max(source.score for source in sources)
         source_bonus: float = min(len(sources) * 0.1, 0.3)
 
         return min(max_score + source_bonus, 1.0)
@@ -156,11 +156,11 @@ class SemanticQueryLayer(Configurable):
                 RetrieveDocumentsInput(query=user_query), CancellationToken()
             )
 
-            sources = self._extract_sources(retrieval_result)
+            sources: List[SourceMetadata] = self._extract_sources(retrieval_result)
             confidence: float = self._calculate_confidence(sources)
 
             if sources:
-                context = "\n\n".join(
+                context: str = "\n\n".join(
                     [chunk.content for chunk in retrieval_result.chunks]
                 )
 

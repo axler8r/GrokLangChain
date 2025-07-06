@@ -1,3 +1,5 @@
+"""Configuration module for BiblioTeq."""
+
 import os
 from abc import ABC
 
@@ -49,6 +51,6 @@ class Configurable(ABC):
     This class provides a method to get the configuration instance.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initializes the Configurable instance."""
-        self._config = Configuration.get_instance()
+        self._config: Configuration = Configuration.get_instance()

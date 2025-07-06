@@ -20,7 +20,7 @@ def get_pdf_path() -> str:
     Raises:
         ValueError: If PDF_PATH environment variable is not set.
     """
-    pdf_path = os.getenv("PDF_PATH", "/data/book")
+    pdf_path: str = os.getenv("PDF_PATH", "/data/book")
     if not pdf_path:
         raise ValueError("PDF_PATH environment variable must be set")
     return pdf_path
@@ -33,7 +33,7 @@ def main() -> None:
     in the configured directory.
     """
     try:
-        pdf_path = get_pdf_path()
+        pdf_path: str = get_pdf_path()
         print("Starting PDF loader service...")
         print(f"Processing PDFs from: {pdf_path}")
 
@@ -46,7 +46,7 @@ def main() -> None:
             print(f"Warning: PDF directory {pdf_path} does not exist")
             return
 
-        pdf_files = list(pdf_directory.glob("*.pdf"))
+        pdf_files: list[Path] = list(pdf_directory.glob("*.pdf"))
         if not pdf_files:
             print(f"No PDF files found in {pdf_path}")
             return

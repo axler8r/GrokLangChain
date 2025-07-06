@@ -15,7 +15,7 @@ def render_query_section() -> None:
     with st.container():
         st.markdown('<div class="query-section">', unsafe_allow_html=True)
 
-        query = st.text_area(
+        query: str = st.text_area(
             "Enter your question",
             placeholder="Ask a question about your documents...",
             height=100,
@@ -80,7 +80,6 @@ def _display_query_sources(result: QueryResponse) -> None:
             for i, source in enumerate(result.sources, 1):
                 # Create columns for thumbnail and content
                 col1, col2 = st.columns([1, 4])
-
                 with col1:
                     # Display thumbnail if available
                     if source.thumbnail:

@@ -166,7 +166,7 @@ class Loader(Configurable):
         index: int,
     ) -> None:
         chunk_id: str = self._generate_chunk_id(document_checksum, index)
-        token_count = len(self.tokenizer.encode(chunk))
+        token_count: int = len(self.tokenizer.encode(chunk))
 
         # Create chunk record for MongoDB
         chunk_record = ChunkRecord(
@@ -237,8 +237,8 @@ class Loader(Configurable):
 
         for pdf_file in pdf_files:
             try:
-                document_name = pdf_file.stem
-                chunk_count = self.process_pdf_file(pdf_file, document_name)
+                document_name: str = pdf_file.stem
+                chunk_count: int = self.process_pdf_file(pdf_file, document_name)
                 results[str(pdf_file)] = chunk_count
             except Exception as e:
                 print(f"Error processing {pdf_file}: {e}")
