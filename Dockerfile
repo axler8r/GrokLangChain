@@ -21,4 +21,4 @@ ENV PYTHONPATH=/app:/share
 EXPOSE 8501
 
 # Start Streamlit app
-CMD ["streamlit", "run", "biblioteq/ui/web/app.py", "--server.address", "0.0.0.0", "--server.port", "8501"]
+CMD ["streamlit", "run", "biblioteq/web/app.py", "--server.address", "0.0.0.0", "--server.port", "8501"]
