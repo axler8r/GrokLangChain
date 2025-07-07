@@ -6,8 +6,8 @@ avoiding external dependencies while testing core functionality.
 
 import pytest
 from unittest.mock import Mock, patch
-from biblioteq.retriever import Retriever
-from biblioteq.schema import RetrievalResult
+from biblioteq.services.retriever import Retriever
+from biblioteq.core.schema import RetrievalResult
 
 
 class TestRetrieverUnit:
@@ -17,9 +17,9 @@ class TestRetrieverUnit:
     def mock_retriever(self):
         """Create a Retriever instance with mocked dependencies."""
         with (
-            patch("biblioteq.retriever.MongoClient"),
-            patch("biblioteq.retriever.QdrantClient"),
-            patch("biblioteq.retriever.openai"),
+            patch("biblioteq.services.retriever.MongoClient"),
+            patch("biblioteq.services.retriever.QdrantClient"),
+            patch("biblioteq.services.retriever.openai"),
             patch.dict(
                 "os.environ",
                 {

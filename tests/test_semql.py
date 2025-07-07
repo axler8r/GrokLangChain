@@ -10,13 +10,17 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from autogen_core import CancellationToken
 from autogen_agentchat.messages import TextMessage
 from pymongo import MongoClient
 from qdrant_client import QdrantClient
+from dotenv import load_dotenv
 
-from biblioteq.retriever import Retriever
-from biblioteq.schema import QueryResponse
-from biblioteq.semql import SemanticQueryLayer
+from biblioteq.core.schema import (
+    QueryResponse, RetrievalResult, RetrieveDocumentsInput
+)
+from biblioteq.services.retriever import Retriever
+from biblioteq.services.semql import SemanticQueryLayer
 
 
 class TestSemanticQueryLayer:
@@ -26,10 +30,10 @@ class TestSemanticQueryLayer:
     def test_env_file(self):
         """Use the existing .env file for testing."""
         # Look for .env file in the biblioteq directory from project root
-        env_file_path = Path("biblioteq/.env")
+        env_file_path = Path(".env")
 
         if not env_file_path.exists():
-            pytest.skip("biblioteq/.env file not found")
+            pytest.skip(".env file not found")
 
         # Check if OpenAI API key is available
         openai_key = os.getenv("OPENAI_API_KEY", "")
@@ -65,8 +69,6 @@ class TestSemanticQueryLayer:
     def ensure_test_data_exists(self, test_env_file: str):
         """Ensure production databases have data."""
         # Load .env file explicitly
-        from dotenv import load_dotenv
-
         load_dotenv(test_env_file)
 
         # Check if production databases have data
@@ -105,8 +107,6 @@ class TestSemanticQueryLayer:
     @pytest.fixture
     def semql_with_mock_retriever(self) -> SemanticQueryLayer:
         """Create SemanticQueryLayer with mock retriever service."""
-        from biblioteq.schema import RetrievalResult
-
         mock_retriever = MagicMock()
         mock_retriever.search.return_value = [
             RetrievalResult(
@@ -152,9 +152,6 @@ class TestSemanticQueryLayer:
         tool = semql_with_real_retriever.retrieval_tool
 
         async def run_test():
-            from biblioteq.schema import RetrieveDocumentsInput
-            from autogen_core import CancellationToken
-
             # Test with GNU Parallel related query
             input_data = RetrieveDocumentsInput(query="parallel shell commands")
             result = await tool.run(input_data, CancellationToken())
@@ -192,8 +189,6 @@ class TestSemanticQueryLayer:
         tool = semql_with_mock_retriever.retrieval_tool
 
         async def run_test():
-            from biblioteq.schema import RetrieveDocumentsInput
-            from autogen_core import CancellationToken
 
             input_data = RetrieveDocumentsInput(query="GNU parallel")
             result = await tool.run(input_data, CancellationToken())
@@ -219,9 +214,6 @@ class TestSemanticQueryLayer:
         tool = semql.retrieval_tool
 
         async def run_test():
-            from biblioteq.schema import RetrieveDocumentsInput
-            from autogen_core import CancellationToken
-
             input_data = RetrieveDocumentsInput(query="test query")
             result = await tool.run(input_data, CancellationToken())
 
@@ -259,8 +251,8 @@ class TestSemanticQueryLayer:
 
         asyncio.run(run_test())
 
-    @patch("biblioteq.semql.ChatCompletionClient")
-    @patch("biblioteq.semql.AssistantAgent")
+    @patch("biblioteq.services.semql.ChatCompletionClient")
+    @patch("biblioteq.services.semql.AssistantAgent")
     def test_query_response_structure(
         self,
         mock_agent_class,
@@ -305,7 +297,7 @@ class TestSemanticQueryLayer:
         result = asyncio.run(run_test())
         assert result is not None
 
-    @patch("biblioteq.semql.ChatCompletionClient")
+    @patch("biblioteq.services.semql.ChatCompletionClient")
     def test_query_error_handling(
         self, mock_client_class, semql_with_mock_retriever: SemanticQueryLayer
     ):
@@ -367,9 +359,6 @@ class TestSemanticQueryLayer:
         tool = semql_with_real_retriever.retrieval_tool
 
         async def run_test():
-            from biblioteq.schema import RetrieveDocumentsInput
-            from autogen_core import CancellationToken
-
             input_data = RetrieveDocumentsInput(query="parallel jobs")
             result = await tool.run(input_data, CancellationToken())
 
@@ -414,9 +403,6 @@ class TestSemanticQueryLayer:
         ]
 
         async def run_test():
-            from biblioteq.schema import RetrieveDocumentsInput
-            from autogen_core import CancellationToken
-
             results = {}
 
             for query in test_queries:
