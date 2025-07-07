@@ -1,8 +1,10 @@
+"""Configuration module for BiblioTeq."""
+
 import os
+from abc import ABC
+
 from attr import dataclass
 from dotenv import load_dotenv
-
-load_dotenv()
 
 
 @dataclass
@@ -22,6 +24,8 @@ class Configuration:
         pdf_path: Path to PDF files.
     """
 
+    load_dotenv()
+
     mongo_uri: str = os.getenv("MONGO_URI", "UNDEFINED")
     mongo_db: str = os.getenv("MONGO_DB", "UNDEFINED")
     mongo_collection: str = os.getenv("MONGO_COLLECTION", "UNDEFINED")
@@ -39,3 +43,14 @@ class Configuration:
         if not hasattr(cls, "_instance"):
             cls._instance = cls()
         return cls._instance
+
+
+class Configurable(ABC):
+    """Abstract base class for configurable components.
+
+    This class provides a method to get the configuration instance.
+    """
+
+    def __init__(self) -> None:
+        """Initializes the Configurable instance."""
+        self._config: Configuration = Configuration.get_instance()

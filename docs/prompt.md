@@ -1,7 +1,6 @@
 # Overview
-We will develop a <thing> together.
-
-Keep in mind that this is a **Docker Compose** application!
+You will help me implement a component as part of a **Docker Compose**
+application.
 
 Look at the architecture document in `documentation/architecture.md` for an
 overview of the project, its components and the expected directory structure.
@@ -78,15 +77,17 @@ Use conventional commits format:
 - `test:` for adding/modifying tests
 - `docs:` for documentation changes
 - `chore:` for maintenance tasks
+- `wip`: work in progress
 
 Example: `feat: add user authentication endpoint`
 
 ## Coding Standards
-- Use snake_case for functions and variables
-- Use PascalCase for classes
-- Use UPPER_CASE for constants
-- Organize imports: standard library, third-party, local (separated by blank lines)
-- Keep line length under 100 characters (Black's default)
+- Follow PEP 8 style guide
+- Organize imports alpahbetically:
+    - standard library,
+    - third-party and,
+    - local (separated by blank lines)
+- Keep line length under 88 characters
 - Use descriptive variable names over comments when possible
 
 ## When in Doubt
@@ -121,3 +122,4 @@ Don't do anything now, I just want you to understand how we will work together.
 
 I will give you further instructions later.
 
+NOW, ASK ME WHAT WE WILL IMPLEMENT TOGETHER.

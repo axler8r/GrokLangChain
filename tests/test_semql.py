@@ -10,11 +10,17 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from autogen_core import CancellationToken
+from autogen_agentchat.messages import TextMessage
 from pymongo import MongoClient
 from qdrant_client import QdrantClient
+from dotenv import load_dotenv
 
-from biblioteq.retriever import Retriever
-from biblioteq.semql import SemanticQueryLayer, QueryResponse
+from biblioteq.core.schema import (
+    QueryResponse, RetrievalResult, RetrieveDocumentsInput
+)
+from biblioteq.services.retriever import Retriever
+from biblioteq.services.semql import SemanticQueryLayer
 
 
 class TestSemanticQueryLayer:
@@ -23,10 +29,11 @@ class TestSemanticQueryLayer:
     @pytest.fixture(scope="class")
     def test_env_file(self):
         """Use the existing .env file for testing."""
-        env_file_path = Path(__file__).parent.parent.parent / "biblioteq" / ".env"
+        # Look for .env file in the biblioteq directory from project root
+        env_file_path = Path(".env")
 
         if not env_file_path.exists():
-            pytest.skip("biblioteq/.env file not found")
+            pytest.skip(".env file not found")
 
         # Check if OpenAI API key is available
         openai_key = os.getenv("OPENAI_API_KEY", "")
@@ -49,9 +56,7 @@ class TestSemanticQueryLayer:
     def retriever(self, test_env_file: str) -> Retriever:
         """Create a Retriever instance for testing with localhost connections."""
         # Create a retriever with overridden connection settings for external testing
-        retriever = Retriever(
-            env_file=test_env_file, max_results=5, min_similarity_threshold=0.1
-        )
+        retriever = Retriever(max_results=5, min_similarity_threshold=0.1)
 
         # Override the connection settings to use localhost instead of Docker hostnames
         retriever.qdrant_client = QdrantClient(host="localhost", port=6333)
@@ -60,9 +65,12 @@ class TestSemanticQueryLayer:
 
         return retriever
 
-    @pytest.fixture(scope="class", autouse=True)
+    @pytest.fixture(scope="class")
     def ensure_test_data_exists(self, test_env_file: str):
         """Ensure production databases have data."""
+        # Load .env file explicitly
+        load_dotenv(test_env_file)
+
         # Check if production databases have data
         mongo_client = MongoClient("mongodb://localhost:27017")
         db = mongo_client["bibioteq"]  # Note: using production DB name from .env
@@ -94,47 +102,41 @@ class TestSemanticQueryLayer:
     @pytest.fixture
     def semql_with_real_retriever(self, retriever: Retriever) -> SemanticQueryLayer:
         """Create SemanticQueryLayer with real retriever service."""
-        config = {
-            "model_config": {
-                "model": "gpt-4",
-                "api_key": os.getenv("OPENAI_API_KEY", ""),
-            }
-        }
-        return SemanticQueryLayer(retriever_service=retriever, config=config)
+        return SemanticQueryLayer(retriever_service=retriever)
 
     @pytest.fixture
     def semql_with_mock_retriever(self) -> SemanticQueryLayer:
         """Create SemanticQueryLayer with mock retriever service."""
         mock_retriever = MagicMock()
         mock_retriever.search.return_value = [
-            MagicMock(
+            RetrievalResult(
+                chunk_id="test-chunk-1",
                 text="GNU parallel is a shell tool for executing jobs in parallel using one or more computers.",
-                source_file="gnu-parallel-manual.pdf",
+                document_title="gnu-parallel-manual.pdf",
+                document_checksum="abc123",
+                thumbnail="base64data",
                 chunk_index=1,
                 similarity_score=0.95,
-                chunk_id="test-chunk-1",
+                token_count=20,
             ),
-            MagicMock(
+            RetrievalResult(
+                chunk_id="test-chunk-2",
                 text="The parallel command can read from multiple input sources and distribute work across available processors.",
-                source_file="gnu-parallel-manual.pdf",
+                document_title="gnu-parallel-manual.pdf",
+                document_checksum="abc123",
+                thumbnail="base64data",
                 chunk_index=2,
                 similarity_score=0.87,
-                chunk_id="test-chunk-2",
+                token_count=22,
             ),
         ]
 
-        config = {
-            "model_config": {
-                "model": "gpt-4",
-                "api_key": "mock-api-key",
-            }
-        }
-        return SemanticQueryLayer(retriever_service=mock_retriever, config=config)
+        return SemanticQueryLayer(retriever_service=mock_retriever)
 
     def test_semql_initialization(self, semql_with_real_retriever: SemanticQueryLayer):
         """Test that SemanticQueryLayer initializes correctly."""
         assert semql_with_real_retriever.retriever_service is not None
-        assert semql_with_real_retriever.config is not None
+        assert semql_with_real_retriever._config is not None
         assert semql_with_real_retriever.model_config is not None
         assert semql_with_real_retriever.retrieval_tool is not None
 
@@ -150,9 +152,6 @@ class TestSemanticQueryLayer:
         tool = semql_with_real_retriever.retrieval_tool
 
         async def run_test():
-            from biblioteq.semql import RetrieveDocumentsInput
-            from autogen_core import CancellationToken
-
             # Test with GNU Parallel related query
             input_data = RetrieveDocumentsInput(query="parallel shell commands")
             result = await tool.run(input_data, CancellationToken())
@@ -163,12 +162,12 @@ class TestSemanticQueryLayer:
             if result.total_results > 0:
                 # Check structure of returned chunks
                 chunk = result.chunks[0]
-                assert "content" in chunk
-                assert "source" in chunk or "source_file" in chunk
-                assert "score" in chunk or "similarity_score" in chunk
+                assert hasattr(chunk, "content")
+                assert hasattr(chunk, "source")
+                assert hasattr(chunk, "score")
 
                 # Should contain relevant content about GNU Parallel
-                content = chunk["content"].lower()
+                content = chunk.content.lower()
                 assert any(
                     term in content for term in ["parallel", "gnu", "shell", "command"]
                 )
@@ -176,7 +175,7 @@ class TestSemanticQueryLayer:
                 print(
                     f"Retrieved {result.total_results} chunks for 'parallel shell commands'"
                 )
-                print(f"Sample content: {chunk['content'][:100]}...")
+                print(f"Sample content: {chunk.content[:100]}...")
 
             return result
 
@@ -190,8 +189,6 @@ class TestSemanticQueryLayer:
         tool = semql_with_mock_retriever.retrieval_tool
 
         async def run_test():
-            from biblioteq.semql import RetrieveDocumentsInput
-            from autogen_core import CancellationToken
 
             input_data = RetrieveDocumentsInput(query="GNU parallel")
             result = await tool.run(input_data, CancellationToken())
@@ -202,9 +199,9 @@ class TestSemanticQueryLayer:
 
             # Check mock data structure
             chunk = result.chunks[0]
-            assert "content" in chunk
-            assert "GNU parallel" in chunk["content"]
-            assert chunk["source"] == "gnu-parallel-manual.pdf"
+            assert hasattr(chunk, "content")
+            assert "GNU parallel" in chunk.content
+            assert chunk.source == "gnu-parallel-manual.pdf"
 
             return result
 
@@ -213,20 +210,16 @@ class TestSemanticQueryLayer:
 
     def test_retrieve_documents_tool_no_retriever(self):
         """Test RetrieveDocumentsTool behavior with no retriever service."""
-        semql = SemanticQueryLayer(retriever_service=None, config={})
+        semql = SemanticQueryLayer(retriever_service=None)
         tool = semql.retrieval_tool
 
         async def run_test():
-            from biblioteq.semql import RetrieveDocumentsInput
-            from autogen_core import CancellationToken
-
             input_data = RetrieveDocumentsInput(query="test query")
             result = await tool.run(input_data, CancellationToken())
 
             assert isinstance(result.chunks, list)
             assert result.total_results == 0
-            assert len(result.chunks) == 1
-            assert "No retriever service available" in result.chunks[0]["content"]
+            assert len(result.chunks) == 0
 
             return result
 
@@ -258,8 +251,8 @@ class TestSemanticQueryLayer:
 
         asyncio.run(run_test())
 
-    @patch("biblioteq.semql.ChatCompletionClient")
-    @patch("biblioteq.semql.AssistantAgent")
+    @patch("biblioteq.services.semql.ChatCompletionClient")
+    @patch("biblioteq.services.semql.AssistantAgent")
     def test_query_response_structure(
         self,
         mock_agent_class,
@@ -274,8 +267,10 @@ class TestSemanticQueryLayer:
         # Mock the assistant agent
         mock_agent = AsyncMock()
         mock_response = AsyncMock()
-        mock_response.chat_message = MagicMock()
-        mock_response.chat_message.content = "GNU parallel is a powerful tool for executing jobs in parallel. Based on the retrieved documents, it can process shell commands across multiple processors and handle various input sources efficiently."
+        mock_response.chat_message = TextMessage(
+            content="GNU parallel is a powerful tool for executing jobs in parallel. Based on the retrieved documents, it can process shell commands across multiple processors and handle various input sources efficiently.",
+            source="assistant",
+        )
 
         mock_agent.on_messages.return_value = mock_response
         mock_agent_class.return_value = mock_agent
@@ -302,7 +297,7 @@ class TestSemanticQueryLayer:
         result = asyncio.run(run_test())
         assert result is not None
 
-    @patch("biblioteq.semql.ChatCompletionClient")
+    @patch("biblioteq.services.semql.ChatCompletionClient")
     def test_query_error_handling(
         self, mock_client_class, semql_with_mock_retriever: SemanticQueryLayer
     ):
@@ -328,7 +323,7 @@ class TestSemanticQueryLayer:
     def test_retriever_service_integration(self, retriever: Retriever):
         """Test that retriever service returns expected data structure."""
         # Test direct retriever functionality
-        results = retriever.search("GNU parallel", max_results=3)
+        results = retriever.search("GNU parallel")
 
         assert isinstance(results, list)
         assert len(results) >= 0
@@ -338,18 +333,18 @@ class TestSemanticQueryLayer:
 
             # Check that result has expected attributes
             assert hasattr(result, "text")
-            assert hasattr(result, "source_file")
+            assert hasattr(result, "document_title")
             assert hasattr(result, "similarity_score")
             assert hasattr(result, "chunk_id")
 
             # Check data types
             assert isinstance(result.text, str)
-            assert isinstance(result.source_file, str)
+            assert isinstance(result.document_title, str)
             assert isinstance(result.similarity_score, float)
 
             # Check content makes sense
             assert len(result.text) > 0
-            assert result.source_file.endswith(".pdf")
+            assert result.document_title.endswith(".pdf")
             assert 0.0 <= result.similarity_score <= 1.0
 
             print(f"Direct retriever test: {len(results)} results")
@@ -364,9 +359,6 @@ class TestSemanticQueryLayer:
         tool = semql_with_real_retriever.retrieval_tool
 
         async def run_test():
-            from biblioteq.semql import RetrieveDocumentsInput
-            from autogen_core import CancellationToken
-
             input_data = RetrieveDocumentsInput(query="parallel jobs")
             result = await tool.run(input_data, CancellationToken())
 
@@ -374,20 +366,18 @@ class TestSemanticQueryLayer:
                 chunk = result.chunks[0]
 
                 # Check required fields are present and formatted correctly
-                assert "content" in chunk
-                assert isinstance(chunk["content"], str)
-                assert len(chunk["content"]) > 0
+                assert hasattr(chunk, "content")
+                assert isinstance(chunk.content, str)
+                assert len(chunk.content) > 0
 
                 # Source information
-                source_key = "source" if "source" in chunk else "source_file"
-                assert source_key in chunk
-                assert chunk[source_key].endswith(".pdf")
+                assert hasattr(chunk, "source")
+                assert chunk.source.endswith(".pdf")
 
                 # Score information
-                score_key = "score" if "score" in chunk else "similarity_score"
-                assert score_key in chunk
-                assert isinstance(chunk[score_key], float)
-                assert 0.0 <= chunk[score_key] <= 1.0
+                assert hasattr(chunk, "score")
+                assert isinstance(chunk.score, float)
+                assert 0.0 <= chunk.score <= 1.0
 
                 print(
                     f"Data formatting test passed: {result.total_results} chunks formatted correctly"
@@ -413,9 +403,6 @@ class TestSemanticQueryLayer:
         ]
 
         async def run_test():
-            from biblioteq.semql import RetrieveDocumentsInput
-            from autogen_core import CancellationToken
-
             results = {}
 
             for query in test_queries:
