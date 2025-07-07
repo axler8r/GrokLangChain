@@ -8,7 +8,7 @@ import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
-from biblioteq.loader import Loader
+from biblioteq.services.loader import Loader
 
 
 def render_load_section() -> None:

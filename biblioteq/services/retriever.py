@@ -8,8 +8,8 @@ from typing import List
 
 import openai
 import tiktoken
-from biblioteq.config import Configurable
-from biblioteq.schema import ChunkRecord, RetrievalResult
+from biblioteq.core.config import Configurable
+from biblioteq.core.schema import ChunkRecord, RetrievalResult
 from openai.types.create_embedding_response import CreateEmbeddingResponse
 from pymongo import MongoClient
 from qdrant_client import QdrantClient

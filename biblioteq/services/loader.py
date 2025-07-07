@@ -21,8 +21,8 @@ from pymongo import MongoClient
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
-from biblioteq.config import Configurable
-from biblioteq.schema import ChunkRecord, EmbeddingMetadata
+from biblioteq.core.config import Configurable
+from biblioteq.core.schema import ChunkRecord, EmbeddingMetadata
 
 
 class Loader(Configurable):

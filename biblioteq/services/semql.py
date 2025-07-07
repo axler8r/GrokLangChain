@@ -17,8 +17,8 @@ from autogen_agentchat.messages import TextMessage
 from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
 from autogen_core.tools import BaseTool
-from biblioteq.config import Configurable
-from biblioteq.schema import (
+from biblioteq.core.config import Configurable
+from biblioteq.core.schema import (
     QueryResponse,
     RetrieveDocumentsInput,
     RetrieveDocumentsOutput,

@@ -9,10 +9,10 @@ import streamlit as st
 from pymongo import MongoClient
 from qdrant_client import QdrantClient
 
-from biblioteq.config import Configuration
-from biblioteq.retriever import Retriever
-from biblioteq.schema import QueryResponse
-from biblioteq.semql import SemanticQueryLayer
+from biblioteq.core.config import Configuration
+from biblioteq.core.schema import QueryResponse
+from biblioteq.services.retriever import Retriever
+from biblioteq.services.semql import SemanticQueryLayer
 
 
 class QueryService:

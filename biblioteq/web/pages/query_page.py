@@ -4,8 +4,8 @@ import base64
 
 import streamlit as st
 
-from biblioteq.schema import QueryResponse
-from biblioteq.ui.web.services.query_service import QueryService
+from biblioteq.core.schema import QueryResponse
+from biblioteq.web.services.query_service import QueryService
 
 
 def render_query_section() -> None:

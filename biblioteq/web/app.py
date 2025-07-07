@@ -7,8 +7,8 @@ and intelligent query system.
 
 import streamlit as st
 
-from biblioteq.ui.web.components import apply_stylesheet, render_header
-from biblioteq.ui.web.pages import render_load_section, render_query_section
+from biblioteq.web.components import apply_stylesheet, render_header
+from biblioteq.web.pages import render_load_section, render_query_section
 
 
 def main() -> None:
