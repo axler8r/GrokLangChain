@@ -4,8 +4,8 @@ import base64
 
 import streamlit as st
 
-from biblioteq.schema import QueryResponse
-from biblioteq.ui.web.services.query_service import QueryService
+from biblioteq.core.schema import QueryResponse
+from biblioteq.web.services.query_service import QueryService
 
 
 def render_query_section() -> None:
@@ -15,7 +15,7 @@ def render_query_section() -> None:
     with st.container():
         st.markdown('<div class="query-section">', unsafe_allow_html=True)
 
-        query = st.text_area(
+        query: str = st.text_area(
             "Enter your question",
             placeholder="Ask a question about your documents...",
             height=100,
@@ -78,14 +78,10 @@ def _display_query_sources(result: QueryResponse) -> None:
     if result.sources:
         with st.expander("View Sources"):
             for i, source in enumerate(result.sources, 1):
-                # Create columns for thumbnail and content
                 col1, col2 = st.columns([1, 4])
-
                 with col1:
-                    # Display thumbnail if available
                     if source.thumbnail:
                         try:
-                            # Decode base64 thumbnail and display
                             thumbnail_data = base64.b64decode(source.thumbnail)
                             st.image(
                                 thumbnail_data,
@@ -93,19 +89,16 @@ def _display_query_sources(result: QueryResponse) -> None:
                                 caption=f"Page {source.chunk_index + 1}",
                             )
                         except Exception:
-                            # Fallback if thumbnail can't be displayed
                             st.text("📄")
                     else:
                         st.text("📄")
 
                 with col2:
-                    # Display source information
                     st.markdown(f"**Source {i}:** {source.source}")
                     st.text(source.content[:200] + "...")
                     st.caption(
                         f"Relevance: {source.score:.1%} • Chunk {source.chunk_index + 1}"
                     )
 
-                # Add separator between sources (except for the last one)
                 if i < len(result.sources):
                     st.markdown("---")

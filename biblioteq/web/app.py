@@ -7,8 +7,8 @@ and intelligent query system.
 
 import streamlit as st
 
-from biblioteq.ui.web.components import apply_stylesheet, render_header
-from biblioteq.ui.web.pages import render_load_section, render_query_section
+from biblioteq.web.components import apply_stylesheet, render_header
+from biblioteq.web.pages import render_load_section, render_query_section
 
 
 def main() -> None:
@@ -23,15 +23,12 @@ def main() -> None:
     apply_stylesheet()
     render_header()
 
-    # Initialize session state for navigation
     if "selected_action" not in st.session_state:
         st.session_state.selected_action = "Load"
 
-    # Sidebar navigation
     with st.sidebar:
         st.markdown("## Navigation")
 
-        # Query button
         if st.button(
             "Query Library",
             key="query_btn",
@@ -40,7 +37,6 @@ def main() -> None:
         ):
             st.session_state.selected_action = "Query"
 
-        # Load button
         if st.button(
             "Load Documents",
             key="load_btn",
@@ -49,10 +45,8 @@ def main() -> None:
         ):
             st.session_state.selected_action = "Load"
 
-        # Show current selection
         st.markdown(f"**Current:** {st.session_state.selected_action}")
 
-    # Main content area
     if st.session_state.selected_action == "Load":
         render_load_section()
     elif st.session_state.selected_action == "Query":

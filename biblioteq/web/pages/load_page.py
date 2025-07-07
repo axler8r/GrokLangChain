@@ -6,8 +6,9 @@ from typing import Dict, List
 
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 
-from biblioteq.loader import Loader
+from biblioteq.services.loader import Loader
 
 
 def render_load_section() -> None:
@@ -19,7 +20,7 @@ def render_load_section() -> None:
     with st.container():
         st.markdown('<div class="upload-section">', unsafe_allow_html=True)
 
-        uploaded_files = st.file_uploader(
+        uploaded_files: List[UploadedFile] = st.file_uploader(
             "Select PDF files to upload",
             type=["pdf"],
             accept_multiple_files=True,
@@ -52,8 +53,8 @@ def _process_uploaded_files(uploaded_files: List) -> None:
                 tmp_path = Path(tmp_file.name)
 
             try:
-                document_name = Path(uploaded_file.name).stem
-                chunk_count = loader.process_pdf_file(tmp_path, document_name)
+                document_name: str = Path(uploaded_file.name).stem
+                chunk_count: int = loader.process_pdf_file(tmp_path, document_name)
                 results[uploaded_file.name] = chunk_count
             finally:
                 tmp_path.unlink(missing_ok=True)
@@ -62,7 +63,6 @@ def _process_uploaded_files(uploaded_files: List) -> None:
 
         loader.close_connections()
         _display_processing_results(uploaded_files, results, status_text)
-
     except Exception as e:
         st.error(f"Error processing documents: {str(e)}")
         st.info("Please check your database connections and try again")

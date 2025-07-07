@@ -21,8 +21,8 @@ from pymongo import MongoClient
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
-from biblioteq.config import Configurable
-from biblioteq.schema import ChunkRecord, EmbeddingMetadata
+from biblioteq.core.config import Configurable
+from biblioteq.core.schema import ChunkRecord, EmbeddingMetadata
 
 
 class Loader(Configurable):
@@ -166,9 +166,8 @@ class Loader(Configurable):
         index: int,
     ) -> None:
         chunk_id: str = self._generate_chunk_id(document_checksum, index)
-        token_count = len(self.tokenizer.encode(chunk))
+        token_count: int = len(self.tokenizer.encode(chunk))
 
-        # Create chunk record for MongoDB
         chunk_record = ChunkRecord(
             chunk_id=chunk_id,
             document_title=document_title,
@@ -180,7 +179,6 @@ class Loader(Configurable):
         )
         self._store_chunk_in_mongo(chunk_record)
 
-        # Create embedding and metadata for Qdrant
         embedding: List[float] = self._get_embedding(chunk)
         embedding_metadata = EmbeddingMetadata(
             document_title=document_title,
@@ -237,8 +235,8 @@ class Loader(Configurable):
 
         for pdf_file in pdf_files:
             try:
-                document_name = pdf_file.stem
-                chunk_count = self.process_pdf_file(pdf_file, document_name)
+                document_name: str = pdf_file.stem
+                chunk_count: int = self.process_pdf_file(pdf_file, document_name)
                 results[str(pdf_file)] = chunk_count
             except Exception as e:
                 print(f"Error processing {pdf_file}: {e}")

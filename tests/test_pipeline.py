@@ -15,8 +15,8 @@ from qdrant_client import QdrantClient
 from qdrant_client.conversions.common_types import CollectionInfo, CollectionsResponse
 from qdrant_client.http.models.models import Record
 
-from biblioteq.loader import Loader
-from biblioteq.retriever import RetrievalResult, Retriever
+from biblioteq.services.loader import Loader
+from biblioteq.services.retriever import RetrievalResult, Retriever
 
 
 class TestLoaderRetrieverIntegration:

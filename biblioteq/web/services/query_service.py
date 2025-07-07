@@ -9,10 +9,10 @@ import streamlit as st
 from pymongo import MongoClient
 from qdrant_client import QdrantClient
 
-from biblioteq.config import Configuration
-from biblioteq.retriever import Retriever
-from biblioteq.schema import QueryResponse
-from biblioteq.semql import SemanticQueryLayer
+from biblioteq.core.config import Configuration
+from biblioteq.core.schema import QueryResponse
+from biblioteq.services.retriever import Retriever
+from biblioteq.services.semql import SemanticQueryLayer
 
 
 class QueryService:
@@ -37,7 +37,6 @@ class QueryService:
             ][_self.configuration.mongo_collection]
 
             return SemanticQueryLayer(retriever_service=retriever)
-
         except Exception as e:
             st.error(f"Failed to initialize query system: {str(e)}")
             return None
@@ -72,7 +71,6 @@ class QueryService:
                 return self._run_in_thread(semql, query)
             except RuntimeError:
                 return self._run_in_new_loop(semql, query)
-
         except Exception as e:
             return None, str(e)
 
@@ -83,10 +81,10 @@ class QueryService:
 
         def run_async() -> None:
             try:
-                new_loop = asyncio.new_event_loop()
+                new_loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
                 asyncio.set_event_loop(new_loop)
                 try:
-                    result = new_loop.run_until_complete(
+                    result: QueryResponse = new_loop.run_until_complete(
                         self._process_query_async(semql, query)
                     )
                     result_container["result"] = result
@@ -101,15 +99,18 @@ class QueryService:
 
         if result_container["error"]:
             return None, result_container["error"]
+
         return result_container["result"], None
 
     def _run_in_new_loop(
         self, semql: SemanticQueryLayer, query: str
     ) -> Tuple[Optional[QueryResponse], Optional[str]]:
-        loop = asyncio.new_event_loop()
+        loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            result = loop.run_until_complete(self._process_query_async(semql, query))
+            result: QueryResponse = loop.run_until_complete(
+                self._process_query_async(semql, query)
+            )
             return result, None
         finally:
             self._cleanup_event_loop(loop)

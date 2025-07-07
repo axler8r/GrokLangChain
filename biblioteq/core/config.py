@@ -1,10 +1,10 @@
+"""Configuration module for BiblioTeq."""
+
 import os
 from abc import ABC
 
 from attr import dataclass
 from dotenv import load_dotenv
-
-load_dotenv()
 
 
 @dataclass
@@ -23,6 +23,8 @@ class Configuration:
         openai_encoding_model: OpenAI encoding model name.
         pdf_path: Path to PDF files.
     """
+
+    load_dotenv()
 
     mongo_uri: str = os.getenv("MONGO_URI", "UNDEFINED")
     mongo_db: str = os.getenv("MONGO_DB", "UNDEFINED")
@@ -49,6 +51,6 @@ class Configurable(ABC):
     This class provides a method to get the configuration instance.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initializes the Configurable instance."""
-        self._config = Configuration.get_instance()
+        self._config: Configuration = Configuration.get_instance()

@@ -17,8 +17,8 @@ from autogen_agentchat.messages import TextMessage
 from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
 from autogen_core.tools import BaseTool
-from biblioteq.config import Configurable
-from biblioteq.schema import (
+from biblioteq.core.config import Configurable
+from biblioteq.core.schema import (
     QueryResponse,
     RetrieveDocumentsInput,
     RetrieveDocumentsOutput,
@@ -67,7 +67,7 @@ class RetrieveDocumentsTool(BaseTool[RetrieveDocumentsInput, RetrieveDocumentsOu
                 )
 
             # Format results for the tool output using ChunkResult schema
-            chunks = [result.to_chunk_result() for result in results]
+            chunks: List[Any] = [result.to_chunk_result() for result in results]
 
             return RetrieveDocumentsOutput(chunks=chunks, total_results=len(chunks))
         except Exception:
@@ -131,7 +131,7 @@ class SemanticQueryLayer(Configurable):
         if not sources:
             return 0.0
 
-        max_score = max(source.score for source in sources)
+        max_score: float = max(source.score for source in sources)
         source_bonus: float = min(len(sources) * 0.1, 0.3)
 
         return min(max_score + source_bonus, 1.0)
@@ -156,11 +156,11 @@ class SemanticQueryLayer(Configurable):
                 RetrieveDocumentsInput(query=user_query), CancellationToken()
             )
 
-            sources = self._extract_sources(retrieval_result)
+            sources: List[SourceMetadata] = self._extract_sources(retrieval_result)
             confidence: float = self._calculate_confidence(sources)
 
             if sources:
-                context = "\n\n".join(
+                context: str = "\n\n".join(
                     [chunk.content for chunk in retrieval_result.chunks]
                 )
 
@@ -200,12 +200,9 @@ the question, clearly state this limitation.""",
                         response.chat_message, TextMessage
                     ):
                         final_answer: str = response.chat_message.content
-
                 except Exception as e:
-                    # If this is a model client error (during load_component), propagate it
                     if "Model client error" in str(e):
                         raise e
-                    # Otherwise, fallback to a simple context-based response if agent fails
                     final_answer = (
                         f"Based on the retrieved information: {context[:500]}..."
                     )
@@ -225,7 +222,6 @@ the question, clearly state this limitation.""",
                     "retrieval_total": retrieval_result.total_results,
                 },
             )
-
         except Exception as e:
             return QueryResponse(
                 answer=f"I encountered an error while processing your query: {str(e)}",

@@ -12,8 +12,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from biblioteq.loader import Loader
-from biblioteq.schema import ChunkRecord, EmbeddingMetadata
+from biblioteq.services.loader import Loader
+from biblioteq.core.schema import ChunkRecord, EmbeddingMetadata
 
 
 @pytest.fixture
@@ -26,9 +26,9 @@ def test_pdf_path() -> Path:
 def create_mock_loader() -> Loader:
     """Fixture providing a Loader instance with mocked database connections."""
     with (
-        patch("biblioteq.loader.MongoClient"),
-        patch("biblioteq.loader.QdrantClient"),
-        patch("biblioteq.loader.openai") as mock_openai,
+        patch("biblioteq.services.loader.MongoClient"),
+        patch("biblioteq.services.loader.QdrantClient"),
+        patch("biblioteq.services.loader.openai") as mock_openai,
         patch.dict(
             os.environ,
             {
@@ -185,9 +185,9 @@ class TestLoader:
         checksum2: str = create_mock_loader._generate_document_checksum(test_pdf_path)
         assert checksum == checksum2, "Same file should produce identical checksums"
 
-    @patch("biblioteq.loader.convert_from_path")
-    @patch("biblioteq.loader.io.BytesIO")
-    @patch("biblioteq.loader.base64.b64encode")
+    @patch("biblioteq.services.loader.convert_from_path")
+    @patch("biblioteq.services.loader.io.BytesIO")
+    @patch("biblioteq.services.loader.base64.b64encode")
     def test_create_thumbnail(
         self,
         mock_b64encode,
@@ -401,9 +401,9 @@ class TestLoader:
         mock_process_pdf.assert_any_call(pdf2, "document2")
 
     @patch.object(Loader, "_get_embedding")
-    @patch("biblioteq.loader.convert_from_path")
-    @patch("biblioteq.loader.io.BytesIO")
-    @patch("biblioteq.loader.base64.b64encode")
+    @patch("biblioteq.services.loader.convert_from_path")
+    @patch("biblioteq.services.loader.io.BytesIO")
+    @patch("biblioteq.services.loader.base64.b64encode")
     def test_optimized_workflow_integration(
         self,
         mock_b64encode,
