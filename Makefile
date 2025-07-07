@@ -141,9 +141,9 @@ test: ## Run unit tests (fast, no external dependencies)
 	OPENAI_API_KEY=test-key \
 	uv run python -m pytest \
 		--verbose --tb=short \
-		test/test_loader.py \
-		test/test_retriever.py \
-		test/test_semql.py
+		tests/test_loader.py \
+		tests/test_retriever.py \
+		tests/test_semql.py
 
 test-integration: up ## Run integration tests with real databases and API
 	@echo "Running integration tests..."
@@ -162,7 +162,7 @@ test-all: ## Run all tests (unit + integration)
 test-coverage: ## Run tests with coverage report
 	@echo "Running tests with coverage..."
 	OPENAI_API_KEY=test-key \
-	uv run python -m pytest test/test_loader.py test/test_retriever.py \
+	uv run python -m pytest tests/test_loader.py tests/test_retriever.py tests/test_semql.py \
 		--cov=biblioteq --cov-report=html --cov-report=term-missing --verbose
 	@echo "Coverage report generated in htmlcov/"
 
