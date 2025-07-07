@@ -6,7 +6,7 @@ import streamlit as st
 
 def apply_stylesheet() -> None:
     """Apply Material Design-inspired CSS styles to the Streamlit app."""
-    css_path: Path = Path(__file__).parent / "axler8r.css"
+    css_path: Path = Path(__file__).parent / "static/axler8r.css"
 
     with open(css_path, "r") as css_file:
         css_content: str = css_file.read()
