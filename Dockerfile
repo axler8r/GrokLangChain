@@ -13,7 +13,8 @@ COPY requirements.txt .
 RUN pip install --requirement requirements.txt
 
 # Copy application code
-COPY . .
+COPY biblioteq/ ./biblioteq/
+COPY .env .
 
 ENV PYTHONPATH=/app:/share
 
